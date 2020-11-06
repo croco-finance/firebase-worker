@@ -21,4 +21,4 @@ def get_current_block() -> int:
     # 1. Get the positions and snapshots
     data = rewards_graph.query(query, {})['data']
     # Set current block info on current positions
-    return data['currentBlock']['number']
+    return int(data['currentBlock']['number'])

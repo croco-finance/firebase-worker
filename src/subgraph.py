@@ -35,5 +35,5 @@ class SubgraphReader:
         Pass params into query.
         """
         for param, value in params.items():
-            query = query.replace(param, value)
+            query = query.replace(param, str(value))
         return query

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from decimal import Decimal
 from typing import List, Dict
 
@@ -88,7 +89,7 @@ class Uniswap(Dex):
                 reached_staked_last = bool(new_staked_snaps)
             skip += max_objects
 
-        merged = self._merge_snaps_and_staked(snaps, staked_snaps)
+        merged = self._merge_corresponding_snaps(snaps + staked_snaps)
         # TODO: populate eth prices
         return merged
 
@@ -202,24 +203,32 @@ class Uniswap(Dex):
             None
         )
 
+    def _merge_corresponding_snaps(self, raw_snaps) -> List[ShareSnap]:
+        user_snaps_dict = defaultdict(list)
+        for snap in raw_snaps:
+            user_snaps_dict[snap.user_addr].append(snap)
+
+        snaps = []
+        for user_snaps in user_snaps_dict.values():
+            snaps += self._merge_user_snaps(user_snaps)
+        return snaps
+
     @staticmethod
-    def _merge_snaps_and_staked(snaps, staked) -> List[PoolShareSnapshot]:
+    def _merge_user_snaps(snaps: List[ShareSnap]) -> List[ShareSnap]:
         # Every staked snap has the corresponding liquidity position snap
         # (increase in staked LP balance always results in the equal decrease
         # in the normal snap) - sum LP balances of snaps at the same block
-        raw_merged = snaps + staked
-
         # Group them by pool id
-        pool_dict = {}
-        for snap in raw_merged:
-            block, pool_id = snap['block'], snap['pool_id']
+        pool_dict: Dict[str, Dict[int, ShareSnap]] = {}
+        for snap in snaps:
+            block, pool_id = snap.block, snap.pool_id
 
             if pool_id not in pool_dict:
                 pool_dict[pool_id] = {}
 
             if block in pool_dict[pool_id]:
-                if pool_dict[pool_id][block]['liquidity_token_balance'] == 0 \
-                        or snap['liquidity_token_balance'] == 0:
+                if pool_dict[pool_id][block].liquidity_token_balance == 0 \
+                        or snap.liquidity_token_balance == 0:
                     # When 1 of the 2 snapshots in the same block have 0
                     # balance it means that the snapshots were created because
                     # user deposited all his LP tokens into the staking
@@ -227,8 +236,8 @@ class Uniswap(Dex):
                     # delete the snapshots
                     del pool_dict[pool_id][block]
                 else:
-                    pool_dict[pool_id][block]['liquidity_token_balance'] \
-                        += snap['liquidity_token_balance']
+                    pool_dict[pool_id][block].liquidity_token_balance \
+                        += snap.liquidity_token_balance
             else:
                 pool_dict[pool_id][block] = snap
 

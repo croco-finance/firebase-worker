@@ -24,7 +24,3 @@ class Dex(ABC):
         there is change in the user's position.
         """
         raise NotImplementedError()
-
-    @abstractmethod
-    def _set_frontend_rewards(self, address: str, snaps: List[ShareSnap], reward_range=7):
-        raise NotImplementedError()
