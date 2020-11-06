@@ -37,7 +37,7 @@ class Uniswap(Dex):
         # super().__init__('/subgraphs/name/benesjan/uniswap-v2')
         super().__init__('/subgraphs/name/uniswap/uniswap-v2')
 
-    def fetch_new_snaps(self, last_block_update: int, current_block: int, max_objects=200) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects=200) -> List[ShareSnap]:
         query = '''
                 {
                     snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK}) {
@@ -69,8 +69,8 @@ class Uniswap(Dex):
                 }
                 '''
         reached_last, reached_staked_last = False, False
-        skip, snaps, staked_snaps = 0, [], []
-        while last_block_update + skip < current_block:
+        skip, snaps = 0, []
+        while not reached_last or not reached_staked_last:
             params = {
                 '$MAX_OBJECTS': max_objects,
                 '$SKIP': skip,
@@ -85,11 +85,11 @@ class Uniswap(Dex):
             if not reached_staked_last:
                 # Get snapshots of staked positions
                 new_staked_snaps = self._get_staked_snaps(params)
-                staked_snaps += new_staked_snaps
+                snaps += new_staked_snaps
                 reached_staked_last = bool(new_staked_snaps)
             skip += max_objects
 
-        merged = self._merge_corresponding_snaps(snaps + staked_snaps)
+        merged = self._merge_corresponding_snaps(snaps)
         # TODO: populate eth prices
         return merged
 
@@ -128,7 +128,7 @@ class Uniswap(Dex):
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
         {
-            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK, exchange: "UNI_V2"}) {
+            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {blockNumber_gt: $BLOCK, exchange: "UNI_V2"}) {
                 id
                 user
                 pool
@@ -143,18 +143,19 @@ class Uniswap(Dex):
         '''
         # 1. Get the positions and snapshots
         staked = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
-        staked_dict = {f't{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
+        staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
         # Set current block info on current positions
 
         if not staked:
             return []
 
         # 2. get the pool shares at the time of those snapshots
+        print(staked)
         query = ''.join(_staked_query_generator(staked))
         data = self.dex_graph.query(query, {})
         snaps = []
+        print(data['data'])
         for key, pool in data['data'].items():
-            # Key consists of t{TIMESTAMP}_{lp_token_balance}
             new_snap = self._build_share_snap(staked_dict[key], pool)
             snaps.append(new_snap)
 

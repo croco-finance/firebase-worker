@@ -18,7 +18,7 @@ class Dex(ABC):
             '/subgraphs/name/benesjan/dex-rewards-subgraph')
 
     @abstractmethod
-    def fetch_new_snaps(self, last_block_update: int, current_block: int) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects: int) -> List[ShareSnap]:
         """
         Returns snapshots of user pool shares. A snapshot is created when
         there is change in the user's position.
