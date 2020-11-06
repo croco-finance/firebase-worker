@@ -88,7 +88,9 @@ class Uniswap(Dex):
                 reached_staked_last = bool(new_staked_snaps)
             skip += max_objects
 
-        return self._merge_snaps_and_staked(snaps, staked_snaps)
+        merged = self._merge_snaps_and_staked(snaps, staked_snaps)
+        # TODO: populate eth prices
+        return merged
 
     @staticmethod
     def _process_snap(snap: Dict) -> ShareSnap:
@@ -115,10 +117,11 @@ class Uniswap(Dex):
             Decimal(snap['totalSupply']),
             reserves_usd,
             tokens,
-            int(snap['timestamp']),
-            tx_cost_eth=None,
-            yield_reward=None,
-            eth_price=None
+            snap['block'],
+            snap['timestamp'],
+            tx_hash=None,  # TODO: fill in the values once the graph is synced
+            tx_cost_eth=None,  # TODO: fill in the values once the graph is synced
+            eth_price=None  # TODO: fill in the values once the graph is synced
         )
 
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
@@ -126,45 +129,43 @@ class Uniswap(Dex):
         {
             stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK, exchange: "UNI_V2"}) {
                 id
+                user
                 pool
                 liquidityTokenBalance
                 blockNumber
                 blockTimestamp
+                txHash
+                txGasUsed
+                txGasPrice
             }
         }
         '''
         # 1. Get the positions and snapshots
-        positions = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
+        staked = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
+        staked_dict = {f't{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
         # Set current block info on current positions
 
-        if not positions:
+        if not staked:
             return []
 
         # 2. get the pool shares at the time of those snapshots
-        query = ''.join(_staked_query_generator(positions))
+        query = ''.join(_staked_query_generator(staked))
         data = self.dex_graph.query(query, {})
         snaps = []
         for key, pool in data['data'].items():
             # Key consists of t{TIMESTAMP}_{lp_token_balance}
-            timestamp_, balance_, block_ = key.split('_')
-            timestamp, block = int(timestamp_[1:]), int(block_)
-            lp_token_balance = Decimal(balance_.replace('dot', '.'))
-
-            new_snap = self._build_share_snap(pool, timestamp,
-                                              lp_token_balance,
-                                              address, block)
+            new_snap = self._build_share_snap(staked_dict[key], pool)
             snaps.append(new_snap)
 
         return snaps
 
-    def _build_share_snap(self, pool, timestamp, lp_token_balance,
-                          address, block) -> PoolShareSnapshot:
+    def _build_share_snap(self, stake: Dict, pool: Dict) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
         tokens = []
         for i in range(2):
             tok, res = pool[f'token{i}'], Decimal(pool[f'reserve{i}'])
 
-            if timestamp < self.PRICE_DISCOVERY_START_TIMESTAMP and \
+            if stake['blockTimestamp'] < self.PRICE_DISCOVERY_START_TIMESTAMP and \
                     tok['id'] in self.PRICE_OVERRIDES:
                 price_usd = self.PRICE_OVERRIDES[tok['id']]
             else:
@@ -177,29 +178,29 @@ class Uniswap(Dex):
                 # ==> t1Dollars = reserveUSD/(2*r1)
                 price_usd = reserves_usd / (2 * res)
 
-            tokens.append({
-                'token': CurrencyField(symbol=tok['symbol'],
+            token_type = CurrencyField(symbol=tok['symbol'],
                                        name=tok['name'],
                                        contract_address=tok['id'],
-                                       platform='ethereum'),
-                'weight': Decimal('0.5'),
-                'reserve': res,
-                'price_usd': price_usd
-            })
-
-        return {
-            'exchange': Exchange.UNI_V2,
-            'user_addr': address,
-            'pool_id': pool['id'],
-            'liquidity_token_balance': lp_token_balance,
-            'liquidity_token_total_supply': Decimal(pool['totalSupply']),
-            'reserves_usd': reserves_usd,
-            'tokens': tokens,
-            'tx': None,
-            'tx_type': None,
-            'block': block,
-            'date': datetime.utcfromtimestamp(timestamp)
-        }
+                                       platform='ethereum')
+            tokens.append(PoolToken(token_type,
+                                    Decimal('0.5'),
+                                    res,
+                                    price_usd))
+        return ShareSnap(
+            stake['id'],
+            Exchange.UNI_V2,
+            stake['user'],
+            pool['id'],
+            stake['liquidityTokenBalance'],
+            Decimal(pool['totalSupply']),
+            reserves_usd,
+            tokens,
+            stake['blockNumber'],
+            stake['blockTimestamp'],
+            stake['txHash'],
+            stake['txGasUsed'] * stake['txGasPrice'],
+            None
+        )
 
     @staticmethod
     def _merge_snaps_and_staked(snaps, staked) -> List[PoolShareSnapshot]:

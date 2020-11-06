@@ -43,7 +43,11 @@ class ShareSnap(object):
     liquidity_token_total_supply: Decimal
     reserves_usd: Decimal
     tokens: List[PoolToken]
+    bock: int
     timestamp: int
+    # TODO: fill in the values once the graph is synced
+    tx_hash: Optional[str]
+    # TODO: fill in the values once the graph is synced
     tx_cost_eth: Optional[Decimal]
-    yield_reward: Optional[YieldReward]
+    # TODO: fill in the values once the graph is synced
     eth_price: Optional[Decimal]
