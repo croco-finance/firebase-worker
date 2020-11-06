@@ -67,6 +67,7 @@ class Uniswap(Dex):
                     }
                 }
                 '''
+        reached_last, reached_staked_last = False, False
         skip, snaps, staked_snaps = 0, [], []
         while last_block_update + skip < current_block:
             params = {
@@ -74,12 +75,17 @@ class Uniswap(Dex):
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
-            data = self.dex_graph.query(query, params)['data']
-            for snap in data['snaps']:
-                snaps.append(self._process_snap(snap))
+            if not reached_last:
+                data = self.dex_graph.query(query, params)['data']
+                for snap in data['snaps']:
+                    snaps.append(self._process_snap(snap))
+                reached_last = bool(data['snaps'])
 
-            # Get snapshots of staked positions
-            staked_snaps += self._get_staked_snaps(last_block_update, skip)
+            if not reached_staked_last:
+                # Get snapshots of staked positions
+                new_staked_snaps = self._get_staked_snaps(params)
+                staked_snaps += new_staked_snaps
+                reached_staked_last = bool(new_staked_snaps)
             skip += max_objects
 
         return self._merge_snaps_and_staked(snaps, staked_snaps)
@@ -115,16 +121,11 @@ class Uniswap(Dex):
             eth_price=None
         )
 
-    def _get_staked_snaps(self, last_block_update: int, skip: int) -> List[ShareSnap]:
-        """
-        :param address: user ethereum address
-        :param block_delay: a parameter which sets how many blocks back
-            should be considered as the last block - necessary in order
-            to account for the slowness of thegraph.com indexer
-        """
+    def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
         {
-            stakePositionSnapshots(where: {block_gt: $BLOCK, exchange: "UNI_V2"}) {
+            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK, exchange: "UNI_V2"}) {
+                id
                 pool
                 liquidityTokenBalance
                 blockNumber
@@ -132,9 +133,6 @@ class Uniswap(Dex):
             }
         }
         '''
-        params = {
-            '$BLOCK': last_block_update,
-        }
         # 1. Get the positions and snapshots
         positions = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
         # Set current block info on current positions

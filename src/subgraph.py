@@ -21,7 +21,7 @@ class SubgraphReader:
         if params:
             query = self._pass_params(query, params)
         result = None
-        for i in range(10):
+        for i in range(5):
             result = requests.post(self.url, json={'query': query}).json()
             if result and 'data' in result:
                 break
