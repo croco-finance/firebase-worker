@@ -15,11 +15,11 @@ class Balancer(Dex):
     def __init__(self):
         super().__init__('/subgraphs/name/balancer-labs/balancer')
 
-    def fetch_new_snaps(self, last_block_update: int, max_objects: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         skip = 0
         while True:
             params = {
-                '$MAX_OBJECTS': max_objects,
+                '$MAX_OBJECTS': query_limit,
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
@@ -29,7 +29,7 @@ class Balancer(Dex):
             query = ''.join(share_query_generator(txs))
             raw_snaps = self.dex_graph.query(query, {})['data']
             yield self._parse_snaps(raw_snaps)
-            skip += max_objects
+            skip += query_limit
 
     def _get_txs(self, params: Dict) -> List[Dict]:
         query = '''
@@ -87,7 +87,7 @@ class Balancer(Dex):
                     token_reserve,
                     price_usd,
                 ))
-            tx_, block_, timestamp_, tx_cost_eth, user_addr = key.split('_')
+            tx_, block_, timestamp_, tx_cost_wei, user_addr = key.split('_')
             snaps.append(ShareSnap(
                 tx_[1:],  # This ID might not be unique if user did multiple changes in one call but I don't care
                 Exchange.BALANCER,
@@ -100,7 +100,7 @@ class Balancer(Dex):
                 int(block_),
                 int(timestamp_),
                 tx_[1:],
-                tx_cost_eth,
+                Decimal(tx_cost_wei) * Decimal('1E-18'),
                 None
             ))
         return snaps

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import Decimal
-from typing import List, Dict
+from typing import List, Dict, Iterable
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange
@@ -37,10 +37,11 @@ class Uniswap(Dex):
         # super().__init__('/subgraphs/name/benesjan/uniswap-v2')
         super().__init__('/subgraphs/name/uniswap/uniswap-v2')
 
-    def fetch_new_snaps(self, last_block_update: int, max_objects: int) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
+        num_blocks = 1000
         query = '''
                 {
-                    snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK}) {
+                    snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
                         id
                         timestamp
                         block
@@ -68,30 +69,28 @@ class Uniswap(Dex):
                     }
                 }
                 '''
-        reached_last, reached_staked_last = False, False
-        skip, snaps = 0, []
+        reached_last, reached_staked_last, first_block = False, False, last_block_update
         while not reached_last or not reached_staked_last:
             params = {
-                '$MAX_OBJECTS': max_objects,
-                '$SKIP': skip,
-                '$BLOCK': last_block_update,
+                '$MIN_BLOCK': first_block,
+                '$MAX_BLOCK': first_block + query_limit,
             }
+            snaps = []
             if not reached_last:
                 data = self.dex_graph.query(query, params)['data']
                 for snap in data['snaps']:
                     snaps.append(self._process_snap(snap))
-                reached_last = bool(data['snaps'])
+                reached_last = not bool(data['snaps'])
 
             if not reached_staked_last:
                 # Get snapshots of staked positions
                 new_staked_snaps = self._get_staked_snaps(params)
                 snaps += new_staked_snaps
-                reached_staked_last = bool(new_staked_snaps)
-            skip += max_objects
+                reached_staked_last = not bool(new_staked_snaps)
+            first_block += num_blocks
 
-        merged = self._merge_corresponding_snaps(snaps)
-        # TODO: populate eth prices
-        return merged
+            # TODO: populate eth prices
+            yield self._merge_corresponding_snaps(snaps)
 
     @staticmethod
     def _process_snap(snap: Dict) -> ShareSnap:
@@ -128,7 +127,7 @@ class Uniswap(Dex):
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
         {
-            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {blockNumber_gt: $BLOCK, exchange: "UNI_V2"}) {
+            stakePositionSnapshots(first: 1000, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $MIN_BLOCK, blockNumber_lt: $MAX_BLOCK, exchange: "UNI_V2"}) {
                 id
                 user
                 pool
@@ -150,11 +149,9 @@ class Uniswap(Dex):
             return []
 
         # 2. get the pool shares at the time of those snapshots
-        print(staked)
         query = ''.join(_staked_query_generator(staked))
         data = self.dex_graph.query(query, {})
         snaps = []
-        print(data['data'])
         for key, pool in data['data'].items():
             new_snap = self._build_share_snap(staked_dict[key], pool)
             snaps.append(new_snap)
@@ -167,7 +164,7 @@ class Uniswap(Dex):
         for i in range(2):
             tok, res = pool[f'token{i}'], Decimal(pool[f'reserve{i}'])
 
-            if stake['blockTimestamp'] < self.PRICE_DISCOVERY_START_TIMESTAMP and \
+            if int(stake['blockTimestamp']) < self.PRICE_DISCOVERY_START_TIMESTAMP and \
                     tok['id'] in self.PRICE_OVERRIDES:
                 price_usd = self.PRICE_OVERRIDES[tok['id']]
             else:
@@ -193,14 +190,14 @@ class Uniswap(Dex):
             Exchange.UNI_V2,
             stake['user'],
             pool['id'],
-            stake['liquidityTokenBalance'],
+            Decimal(stake['liquidityTokenBalance']),
             Decimal(pool['totalSupply']),
             reserves_usd,
             tokens,
-            stake['blockNumber'],
-            stake['blockTimestamp'],
+            int(stake['blockNumber']),
+            int(stake['blockTimestamp']),
             stake['txHash'],
-            stake['txGasUsed'] * stake['txGasPrice'],
+            Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
             None
         )
 

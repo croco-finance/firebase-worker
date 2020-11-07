@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # instance = Uniswap()
     instance = Balancer()
     prev_smallest, prev_largest = 1000000000, 0
-    for snaps in instance.fetch_new_snaps(last_block, max_objects=100):
+    for snaps in instance.fetch_new_snaps(last_block, query_limit=100):
         smallest, largest = get_smallest_largest_block(snaps)
         assert prev_largest <= smallest, f'Blocks not properly sorted: ' \
                                         f'prev_largest: {prev_largest}, smallest: {smallest}'
