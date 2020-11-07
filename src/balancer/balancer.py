@@ -13,7 +13,7 @@ class Balancer(Dex):
     """
 
     def __init__(self):
-        super().__init__('/subgraphs/name/balancer-labs/balancer')
+        super().__init__('/subgraphs/name/balancer-labs/balancer', Exchange.BALANCER)
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         skip = 0
@@ -64,8 +64,7 @@ class Balancer(Dex):
                 filtered_txs.append(tx)
         return filtered_txs
 
-    @staticmethod
-    def _parse_snaps(shares: Dict[str, Dict]) -> List[ShareSnap]:
+    def _parse_snaps(self, shares: Dict[str, Dict]) -> List[ShareSnap]:
         snaps = []
         for key, share_list in shares.items():
             if len(share_list) != 1:
@@ -94,7 +93,7 @@ class Balancer(Dex):
             tx_, block_, timestamp_, tx_cost_wei, user_addr = key.split('_')
             snaps.append(ShareSnap(
                 tx_[1:],  # This ID might not be unique if user did multiple changes in one call but I don't care
-                Exchange.BALANCER,
+                self.exchange,
                 user_addr,
                 pool['id'],
                 Decimal(share['balance']),

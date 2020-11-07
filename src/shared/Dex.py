@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import List, Dict, Iterable
 
-from src.shared.type_definitions import ShareSnap
+from src.shared.type_definitions import ShareSnap, Exchange
 from src.subgraph import SubgraphReader
 
 
@@ -11,15 +11,16 @@ class Dex(ABC):
     Base class defining the interface for DEXes.
     """
 
-    def __init__(self, dex_graph_url: str):
+    def __init__(self, dex_graph_url: str, exchange: Exchange):
         self.dex_graph = SubgraphReader(dex_graph_url)
+        self.exchange = exchange
         self.block_graph = SubgraphReader(
             '/subgraphs/name/blocklytics/ethereum-blocks')
         self.rewards_graph = SubgraphReader(
             '/subgraphs/name/benesjan/dex-rewards-subgraph')
 
     @abstractmethod
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         """
         Returns snapshots of user pool shares. A snapshot is created when
         there is change in the user's position.

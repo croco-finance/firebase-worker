@@ -5,7 +5,6 @@ from typing import List, Dict, Iterable
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange
 from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator
-from src.utils import get_eth_client
 
 
 class Uniswap(Dex):
@@ -33,9 +32,8 @@ class Uniswap(Dex):
     }
 
     def __init__(self):
-        self.w3 = get_eth_client()
         # super().__init__('/subgraphs/name/benesjan/uniswap-v2')
-        super().__init__('/subgraphs/name/uniswap/uniswap-v2')
+        super().__init__('/subgraphs/name/uniswap/uniswap-v2', Exchange.UNI_V2)
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         query = '''
@@ -95,8 +93,7 @@ class Uniswap(Dex):
             yield merged_snaps
             first_block = last_block
 
-    @staticmethod
-    def _process_snap(snap: Dict) -> ShareSnap:
+    def _process_snap(self, snap: Dict) -> ShareSnap:
         reserves_usd = Decimal(snap['reserveUSD'])
         tokens: List[PoolToken] = []
         for i in range(2):
@@ -113,7 +110,7 @@ class Uniswap(Dex):
         pool_id, block = snap['pair']['id'], snap['block']
         return ShareSnap(
             snap['id'],
-            Exchange.UNI_V2,
+            self.exchange,
             snap['user']['id'],
             pool_id,
             Decimal(snap['liquidityTokenBalance']),
@@ -190,7 +187,7 @@ class Uniswap(Dex):
                                     price_usd))
         return ShareSnap(
             stake['id'],
-            Exchange.UNI_V2,
+            self.exchange,
             stake['user'],
             pool['id'],
             Decimal(stake['liquidityTokenBalance']),
