@@ -37,7 +37,7 @@ class Uniswap(Dex):
         # super().__init__('/subgraphs/name/benesjan/uniswap-v2')
         super().__init__('/subgraphs/name/uniswap/uniswap-v2')
 
-    def fetch_new_snaps(self, last_block_update: int, max_objects=200) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects: int) -> List[ShareSnap]:
         query = '''
                 {
                     snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK}) {

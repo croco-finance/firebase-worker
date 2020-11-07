@@ -1,5 +1,6 @@
+import logging
 from decimal import Decimal
-from typing import List, Dict
+from typing import List, Dict, Iterable
 
 from src.balancer.queries import share_query_generator
 from src.shared.Dex import Dex
@@ -14,8 +15,8 @@ class Balancer(Dex):
     def __init__(self):
         super().__init__('/subgraphs/name/balancer-labs/balancer')
 
-    def fetch_new_snaps(self, last_block_update: int, max_objects=200) -> List[ShareSnap]:
-        skip, snaps = 0, []
+    def fetch_new_snaps(self, last_block_update: int, max_objects: int) -> Iterable[List[ShareSnap]]:
+        skip = 0
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects,
@@ -27,14 +28,13 @@ class Balancer(Dex):
                 break
             query = ''.join(share_query_generator(txs))
             raw_snaps = self.dex_graph.query(query, {})['data']
-            snaps += self._parse_snaps(raw_snaps)
+            yield self._parse_snaps(raw_snaps)
             skip += max_objects
-        return snaps
 
     def _get_txs(self, params: Dict) -> List[Dict]:
         query = '''
         {
-            transactions(first: $MAX_OBJECTS, skip: $SKIP, where: {block_gt: $BLOCK, event_in:["join", "exit"]}) {
+            transactions(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gt: $BLOCK, event_in:["join", "exit"]}) {
                 tx
                 block
                 timestamp
@@ -64,8 +64,11 @@ class Balancer(Dex):
     def _parse_snaps(shares: Dict[str, Dict]) -> List[ShareSnap]:
         snaps = []
         for key, share_list in shares.items():
-            assert len(share_list) == 1, 'Incorrect number of pool shares in ' \
-                                    f'a list: {share_list}'
+            if len(share_list) != 1:
+                # Occurs for weird unused pools on Balancer - ignoring for now
+                logging.warning(f'Incorrect number of pool shares in a list: {share_list}'
+                                f'key: {key}')
+                continue
             share = share_list[0]
             pool = share['poolId']
             total_weight = Decimal(pool['totalWeight'])
@@ -74,6 +77,7 @@ class Balancer(Dex):
             for token in pool['tokens']:
                 token_weight = Decimal(token['denormWeight']) / total_weight
                 token_reserve = Decimal(token['balance'])
+                price_usd = reserves_usd * token_weight / token_reserve if token_reserve != 0 else 0
                 tokens.append(PoolToken(
                     CurrencyField(symbol=token['symbol'],
                                   name=token['name'],
@@ -81,7 +85,7 @@ class Balancer(Dex):
                                   platform='ethereum'),
                     token_weight,
                     token_reserve,
-                    reserves_usd * token_weight / token_reserve,
+                    price_usd,
                 ))
             tx_, block_, timestamp_, tx_cost_eth, user_addr = key.split('_')
             snaps.append(ShareSnap(
