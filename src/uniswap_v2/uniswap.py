@@ -4,7 +4,7 @@ from typing import List, Dict, Iterable
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange
-from src.uniswap_v2.queries import _staked_query_generator
+from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator
 from src.utils import get_eth_client
 
 
@@ -87,10 +87,13 @@ class Uniswap(Dex):
                 new_staked_snaps = self._get_staked_snaps(params)
                 snaps += new_staked_snaps
                 reached_staked_last = not bool(new_staked_snaps)
-            first_block += num_blocks
 
-            # TODO: populate eth prices
-            yield self._merge_corresponding_snaps(snaps)
+            merged_snaps = self._merge_corresponding_snaps(snaps)
+            if merged_snaps:
+                self._populate_eth_prices(merged_snaps)
+
+            yield merged_snaps
+            first_block += num_blocks
 
     @staticmethod
     def _process_snap(snap: Dict) -> ShareSnap:
@@ -244,3 +247,6 @@ class Uniswap(Dex):
             for snap in summed_snaps.values():
                 merged_snaps.append(snap)
         return merged_snaps
+
+    def _get_eth_prices_query_generator(self):
+        return _eth_prices_query_generator

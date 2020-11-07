@@ -9,7 +9,7 @@ def upload_snaps(snaps: List[ShareSnap]):
     print(f"Uploading snaps, num snaps: {len(snaps)}")
 
 
-def get_smallest_largest_block(snaps: List[ShareSnap]):
+def get_lowest_highest_block(snaps: List[ShareSnap]):
     smallest_, largest_ = 1000000000, 0
     for snap in snaps:
         if snap.block > largest_:
@@ -23,10 +23,11 @@ if __name__ == '__main__':
     last_block = 11204701
     # instance = Uniswap()
     instance = Balancer()
-    prev_smallest, prev_largest = 1000000000, 0
+    prev_lowest, prev_highest = 1000000000, 0
     for snaps in instance.fetch_new_snaps(last_block, query_limit=100):
-        smallest, largest = get_smallest_largest_block(snaps)
-        assert prev_largest <= smallest, f'Blocks not properly sorted: ' \
-                                        f'prev_largest: {prev_largest}, smallest: {smallest}'
-        prev_smallest, prev_largest = smallest, largest
+        lowest, highest = get_lowest_highest_block(snaps)
+        print(f'Lowest block: {lowest}, highest block: {highest}')
+        assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
+                                         f'prev_largest: {prev_highest}, smallest: {lowest}'
+        prev_lowest, prev_highest = lowest, highest
         upload_snaps(snaps)
