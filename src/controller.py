@@ -19,24 +19,33 @@ class Controller:
                 'databaseURL': 'https://croco-finance.firebaseio.com/'
             })
         self.root_ref = db.reference('/')
-        self.last_update = self.root_ref.child('lastUpdate').child(self.exchange_name).get()
+        self.last_update_ref = self.root_ref.child('lastUpdate').child(self.exchange_name)
+        self.last_update = self.last_update_ref.get()
 
     def update_snaps(self):
-        last_block = self.last_update['snaps']
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in self.instance.fetch_new_snaps(last_block, query_limit=50):
-            assert len(snaps) < 900, 'Reached dangerous amount of snaps in a batch' \
-                                     '-> not all snaps might fit into the response for this reason' \
-                                     '-> DECREASE QUERY LIMIT!'
-            lowest, highest = self._get_lowest_highest_block(snaps)
-            logging.info(f'Lowest block: {lowest}, highest block: {highest}')
-            assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
-                                           f'prev_highest: {prev_highest}, lowest: {lowest}'
-            prev_lowest, prev_highest = lowest, highest
-            self._upload_snaps(snaps)
+        for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit=50):
+            if snaps:
+                assert len(snaps) < 900, 'Reached dangerous amount of snaps in a batch' \
+                                         '-> not all snaps might fit into the response for this reason' \
+                                         '-> DECREASE QUERY LIMIT!'
+                lowest, highest = self._get_lowest_highest_block(snaps)
+                logging.info(f'Lowest block: {lowest}, highest block: {highest}')
+                assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
+                                               f'prev_highest: {prev_highest}, lowest: {lowest}'
+                prev_lowest, prev_highest = lowest, highest
+                self._upload_snaps(snaps)
 
     def _upload_snaps(self, snaps: List[ShareSnap]):
         logging.info(f"Uploading {len(snaps)} snaps")
+        highest_block = self.last_update['snaps']
+        for snap in snaps:
+            snap_ref = self.root_ref.child(f'users/{snap.user_addr}/{self.exchange_name}'
+                                           f'/snaps/{snap.pool_id}/{snap.id}')
+            snap_ref.set(snap.to_serializable())
+            if snap.block > highest_block:
+                highest_block = snap.block
+        self.last_update_ref.child('snaps').set(highest_block - 1)
 
     @staticmethod
     def _get_lowest_highest_block(snaps: List[ShareSnap]):
