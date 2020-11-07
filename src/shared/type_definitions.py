@@ -45,9 +45,8 @@ class ShareSnap(object):
     tokens: List[PoolToken]
     block: int
     timestamp: int
-    # TODO: fill in the values once the graph is synced
+    # TODO: make mandatory once the graph is synced
     tx_hash: Optional[str]
-    # TODO: fill in the values once the graph is synced
+    # TODO: make mandatory once the graph is synced
     tx_cost_eth: Optional[Decimal]
-    # TODO: fill in the values once the graph is synced
     eth_price: Optional[Decimal]

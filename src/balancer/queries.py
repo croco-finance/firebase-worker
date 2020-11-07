@@ -4,27 +4,29 @@ from typing import Iterable
 def share_query_generator(txs: list) -> str:
     yield "{"
     for tx in txs:
+        user_address = tx['userAddress']['id']
+        tx_cost = int(tx['gasUsed']) * int(tx['gasPrice'])
         yield f'''
-    k{tx['tx']}_{tx['block']}_{tx['timestamp']}: poolShares(first: 1000, where: {{userAddress: "{tx['userAddress']['id']}", poolId: "{tx['poolAddress']['id']}"}}, block: {{ number: {tx['block']} }}) {{
-        userAddress {{
-            id
-        }}
-        balance
-        poolId {{
-            id
-            symbol
-            totalWeight
-            totalShares
-            liquidity
-            tokens {{
-                symbol
-                name
-                address
-                denormWeight
-                balance
+        k{tx['tx']}_{tx['block']}_{tx['timestamp']}_{tx_cost}_{user_address}: poolShares(first: 1000, where: {{userAddress: "{user_address}", poolId: "{tx['poolAddress']['id']}"}}, block: {{ number: {tx['block']} }}) {{
+            userAddress {{
+                id
             }}
-        }}
-    }}'''
+            balance
+            poolId {{
+                id
+                symbol
+                totalWeight
+                totalShares
+                liquidity
+                tokens {{
+                    symbol
+                    name
+                    address
+                    denormWeight
+                    balance
+                }}
+            }}
+        }}'''
     yield "\n}"
 
 
