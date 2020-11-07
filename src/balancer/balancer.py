@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 from typing import List, Dict, Iterable
 
-from src.balancer.queries import share_query_generator
+from src.balancer.queries import share_query_generator, _eth_prices_query_generator
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange
 
@@ -28,7 +28,11 @@ class Balancer(Dex):
                 break
             query = ''.join(share_query_generator(txs))
             raw_snaps = self.dex_graph.query(query, {})['data']
-            yield self._parse_snaps(raw_snaps)
+            snaps = self._parse_snaps(raw_snaps)
+            if snaps:
+                self._populate_eth_prices(snaps)
+
+            yield snaps
             skip += query_limit
 
     def _get_txs(self, params: Dict) -> List[Dict]:
@@ -104,3 +108,6 @@ class Balancer(Dex):
                 None
             ))
         return snaps
+
+    def _get_eth_prices_query_generator(self):
+        return _eth_prices_query_generator

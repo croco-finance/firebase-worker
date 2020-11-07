@@ -64,15 +64,7 @@ def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
     """
     yield '{'
     for block in blocks:
-        if block is None:
-            # When the block is None, it means the snapshot is from the present
-            # moment --> I'll fetch the most recent price
-            yield '''
-            tNone: tokenPrice(id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
-                price
-            }'''
-        else:
-            yield f'''
+        yield f'''
             t{block}: tokenPrice(block: {{ number: {block} }}, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {{
                 price
             }}
