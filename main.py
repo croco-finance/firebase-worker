@@ -10,13 +10,13 @@ def upload_snaps(snaps: List[ShareSnap]):
 
 
 def get_lowest_highest_block(snaps: List[ShareSnap]):
-    smallest_, largest_ = 1000000000, 0
+    lowest_, highest_ = 1000000000, 0
     for snap in snaps:
-        if snap.block > largest_:
-            largest_ = snap.block
-        if snap.block < smallest_:
-            smallest_ = snap.block
-    return smallest_, largest_
+        if snap.block > highest_:
+            highest_ = snap.block
+        if snap.block < lowest_:
+            lowest_ = snap.block
+    return lowest_, highest_
 
 
 if __name__ == '__main__':
