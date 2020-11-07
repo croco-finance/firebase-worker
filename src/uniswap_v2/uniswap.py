@@ -38,7 +38,6 @@ class Uniswap(Dex):
         super().__init__('/subgraphs/name/uniswap/uniswap-v2')
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
-        num_blocks = 1000
         query = '''
                 {
                     snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
@@ -71,9 +70,10 @@ class Uniswap(Dex):
                 '''
         reached_last, reached_staked_last, first_block = False, False, last_block_update
         while not reached_last or not reached_staked_last:
+            last_block = first_block + query_limit
             params = {
                 '$MIN_BLOCK': first_block,
-                '$MAX_BLOCK': first_block + query_limit,
+                '$MAX_BLOCK': last_block,
             }
             snaps = []
             if not reached_last:
@@ -93,7 +93,7 @@ class Uniswap(Dex):
                 self._populate_eth_prices(merged_snaps)
 
             yield merged_snaps
-            first_block += num_blocks
+            first_block = last_block
 
     @staticmethod
     def _process_snap(snap: Dict) -> ShareSnap:
