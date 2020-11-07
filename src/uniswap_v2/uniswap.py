@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from decimal import Decimal
 from typing import List, Dict, Iterable
@@ -66,25 +67,19 @@ class Uniswap(Dex):
                     }
                 }
                 '''
-        reached_last, reached_staked_last, first_block = False, False, last_block_update
-        while not reached_last or not reached_staked_last:
+        first_block, current_block = last_block_update, self._get_current_block()
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
+        while first_block < current_block:
             last_block = first_block + query_limit
             params = {
                 '$MIN_BLOCK': first_block,
                 '$MAX_BLOCK': last_block,
             }
-            snaps = []
-            if not reached_last:
-                data = self.dex_graph.query(query, params)['data']
-                for snap in data['snaps']:
-                    snaps.append(self._process_snap(snap))
-                reached_last = not bool(data['snaps'])
+            raw_snaps = self.dex_graph.query(query, params)['data']['snaps']
+            snaps = [self._process_snap(snap) for snap in raw_snaps]
 
-            if not reached_staked_last:
-                # Get snapshots of staked positions
-                new_staked_snaps = self._get_staked_snaps(params)
-                snaps += new_staked_snaps
-                reached_staked_last = not bool(new_staked_snaps)
+            # Get snapshots of staked positions
+            snaps += self._get_staked_snaps(params)
 
             merged_snaps = self._merge_corresponding_snaps(snaps)
             if merged_snaps:
@@ -92,6 +87,18 @@ class Uniswap(Dex):
 
             yield merged_snaps
             first_block = last_block
+
+    def _get_current_block(self) -> int:
+        query = '''
+        {
+            currentBlock(id: "CURRENT"){
+                number
+            }
+        }
+        '''
+        resp = self.rewards_graph.query(query, {})
+        # Set current block info on current positions
+        return int(resp['data']['currentBlock']['number'])
 
     def _process_snap(self, snap: Dict) -> ShareSnap:
         reserves_usd = Decimal(snap['reserveUSD'])

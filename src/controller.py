@@ -1,26 +1,42 @@
+import logging
 from typing import List
+
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap
 
 
 class Controller:
-    def update(self, instance: Dex):
-        last_block = 11211034
+    def __init__(self, instance: Dex):
+        self.instance = instance
+        self.exchange_name = str(instance.exchange.name)
+        if not firebase_admin._apps:
+            cred = credentials.Certificate('serviceAccountKey.json')
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://croco-finance.firebaseio.com/'
+            })
+        self.root_ref = db.reference('/')
+        self.last_update = self.root_ref.child('lastUpdate').child(self.exchange_name).get()
+
+    def update_snaps(self):
+        last_block = self.last_update['snaps']
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in instance.fetch_new_snaps(last_block, query_limit=50):
+        for snaps in self.instance.fetch_new_snaps(last_block, query_limit=50):
             assert len(snaps) < 900, 'Reached dangerous amount of snaps in a batch' \
                                      '-> not all snaps might fit into the response for this reason' \
                                      '-> DECREASE QUERY LIMIT!'
             lowest, highest = self._get_lowest_highest_block(snaps)
-            print(f'Lowest block: {lowest}, highest block: {highest}')
+            logging.info(f'Lowest block: {lowest}, highest block: {highest}')
             assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                            f'prev_highest: {prev_highest}, lowest: {lowest}'
             prev_lowest, prev_highest = lowest, highest
             self._upload_snaps(snaps)
 
     def _upload_snaps(self, snaps: List[ShareSnap]):
-        print(f"Uploading {len(snaps)} snaps")
+        logging.info(f"Uploading {len(snaps)} snaps")
 
     @staticmethod
     def _get_lowest_highest_block(snaps: List[ShareSnap]):
