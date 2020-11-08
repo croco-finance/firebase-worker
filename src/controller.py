@@ -6,7 +6,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, YieldReward
+from src.shared.type_definitions import ShareSnap, YieldReward, Pool
 
 
 class Controller:
@@ -26,7 +26,7 @@ class Controller:
         prev_lowest, prev_highest = 1000000000, 0
         for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit=50):
             if snaps:
-                assert len(snaps) < 900, 'Reached dangerous amount of snaps in a batch' \
+                assert len(snaps) < 900, f'Reached dangerous amount of snaps in a batch  {len(snaps)}' \
                                          '-> not all snaps might fit into the response for this reason' \
                                          '-> DECREASE QUERY LIMIT!'
                 lowest, highest = self._get_lowest_highest_block(snaps)
@@ -60,17 +60,17 @@ class Controller:
 
     def update_yields(self):
         prev_lowest, prev_highest = 1000000000, 0
-        for rewards in self.instance.fetch_yields(self.last_update['yields'], 50):
-            if rewards:
-                assert len(rewards) < 900, 'Reached dangerous amount of rewards in a batch' \
-                                           '-> not all snaps might fit into the response for this reason' \
-                                           '-> DECREASE QUERY LIMIT!'
-                lowest, highest = self._get_lowest_highest_block(rewards)
+        for yields in self.instance.fetch_yields(self.last_update['yields'], 30):
+            if yields:
+                assert len(yields) < 900, f'Reached dangerous amount of yield rewards in a batch  {len(yields)}' \
+                                          '-> not all snaps might fit into the response for this reason' \
+                                          '-> DECREASE QUERY LIMIT!'
+                lowest, highest = self._get_lowest_highest_block(yields)
                 logging.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                                f'prev_highest: {prev_highest}, lowest: {lowest}'
                 prev_lowest, prev_highest = lowest, highest
-                self._upload_yields(rewards)
+                self._upload_yields(yields)
 
     def _upload_yields(self, yields: List[YieldReward]):
         logging.info(f"Uploading {len(yields)} yields")
@@ -82,3 +82,17 @@ class Controller:
                 highest_block = yield_.block
         self.last_update_ref.child('yields').set(highest_block - 1)
         self.last_update['yields'] = highest_block - 1
+
+    def update_pools(self):
+        for pools in self.instance.fetch_pools(query_limit=100):
+            if pools:
+                assert len(pools) < 900, f'Reached dangerous amount of pools in a batch {len(pools)}' \
+                                         '-> not all pools might fit into the response for this reason' \
+                                         '-> DECREASE QUERY LIMIT!'
+                self._upload_pools(pools)
+
+    def _upload_pools(self, pools: List[Pool]):
+        logging.info(f"Uploading {len(pools)} pools")
+        for pool in pools:
+            pool_ref = self.root_ref.child(f'pools/{pool.id}')
+            pool_ref.set(pool.to_serializable())

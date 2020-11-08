@@ -7,17 +7,15 @@ from src.uniswap_v2.uniswap import Uniswap
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-    # for class_ in [Uniswap, Balancer]:
-    for class_ in [Balancer]:
+    for class_ in [Uniswap, Balancer]:
+    # for class_ in [Balancer]:
         controller = Controller(class_())
         while True:
             try:
-                controller.update_snaps()
+                # controller.update_snaps()
+                # controller.update_yields()
+                controller.update_pools()
                 break
-            # except KeyError as e:
             except Exception as e:
                 print(f'chyba: {e}')
                 time.sleep(300)
-            # except Exception as e:
-            #     print(f'Neklíčová chyba: {e}')
-            #     break

@@ -266,7 +266,7 @@ class Uniswap(Dex):
 
     def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
         query = '''{
-            pairs(first: $MAX_OBJECTS, skip: $SKIP) {
+            pairs(first: $MAX_OBJECTS, skip: $SKIP, orderBy: reserveUSD, orderDirection: desc) {
                 id
                 reserveUSD
                 reserve0

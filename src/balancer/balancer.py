@@ -119,7 +119,7 @@ class Balancer(Dex):
 
     def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
         query = '''{
-            pools(first: $MAX_OBJECTS, skip: $SKIP) {
+            pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc) {
                 id
                 symbol
                 totalWeight
