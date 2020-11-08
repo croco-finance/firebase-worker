@@ -33,8 +33,7 @@ class Uniswap(Dex):
     }
 
     def __init__(self):
-        # super().__init__('/subgraphs/name/benesjan/uniswap-v2')
-        super().__init__('/subgraphs/name/uniswap/uniswap-v2', Exchange.UNI_V2)
+        super().__init__('/subgraphs/name/benesjan/uniswap-v2', Exchange.UNI_V2)
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         query = '''{
@@ -63,6 +62,9 @@ class Uniswap(Dex):
                 reserveUSD
                 totalSupply: liquidityTokenTotalSupply
                 liquidityTokenBalance
+                tx
+                gasUsed
+                gasPrice
             }
         }'''
         first_block, current_block = last_block_update, self._get_current_block()
@@ -123,9 +125,10 @@ class Uniswap(Dex):
             tokens,
             snap['block'],
             snap['timestamp'],
-            tx_hash=None,  # TODO: fill in the values once the graph is synced
-            tx_cost_eth=None,  # TODO: fill in the values once the graph is synced
-            eth_price=None  # TODO: fill in the values once the graph is synced
+            snap['tx'],
+            Decimal(snap['gasUsed']) * Decimal(snap['gasPrice']) * Decimal('1E-18'),
+            eth_price=None,
+            yield_token_price=None
         )
 
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
@@ -201,6 +204,7 @@ class Uniswap(Dex):
             int(stake['blockTimestamp']),
             stake['txHash'],
             Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
+            None,
             None
         )
 

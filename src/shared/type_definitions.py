@@ -68,14 +68,15 @@ class ShareSnap(object):
     tokens: List[PoolToken]
     block: int
     timestamp: int
-    # TODO: make mandatory once the graph is synced
-    tx_hash: Optional[str]
-    # TODO: make mandatory once the graph is synced
-    tx_cost_eth: Optional[Decimal]
+    tx_hash: str
+    tx_cost_eth: Decimal
+    # Optional because it's more efficient to populate the prices after having the instance
     eth_price: Optional[Decimal]
+    # Set for snaps which were at the time eligible for yield reward if the price was available in the graph
+    yield_token_price: Optional[Decimal]
 
     def to_serializable(self) -> Dict:
-        return {
+        serializable = {
             'id': self.id,
             'exchange': str(self.exchange.name),
             'liquidityTokenBalance': str(self.liquidity_token_balance),
@@ -84,14 +85,17 @@ class ShareSnap(object):
             'block': self.block,
             'timestamp': self.timestamp,
             'txHash': self.tx_hash,
-            # TODO: remove condition once the graph is synced
-            'txCostEth': str(self.tx_cost_eth) if self.tx_cost_eth else None,
+            'txCostEth': str(self.tx_cost_eth),
             'ethPrice': str(self.eth_price)
         }
+        if self.yield_token_price:
+            serializable['yieldTokenPrice'] = str(self.yield_token_price)
+        return serializable
 
 
 @attr.s(auto_attribs=True)
 class YieldReward(object):
+    id: str
+    user_addr: str
     token: CurrencyField
-    price: Decimal
     amount: Decimal
