@@ -5,7 +5,7 @@ from typing import List, Dict, Iterable
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
-from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator
+from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _uni_reserves_query_generator
 
 
 class Uniswap(Dex):
@@ -34,6 +34,7 @@ class Uniswap(Dex):
 
     def __init__(self):
         super().__init__('/subgraphs/name/benesjan/uniswap-v2', Exchange.UNI_V2)
+        self.uni_price_first_block = 10876348
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         query = '''{
@@ -84,6 +85,7 @@ class Uniswap(Dex):
             merged_snaps = self._merge_corresponding_snaps(snaps)
             if merged_snaps:
                 self._populate_eth_prices(merged_snaps)
+                self._populate_uni_prices(merged_snaps)
 
             yield merged_snaps
             first_block = last_block
@@ -254,6 +256,25 @@ class Uniswap(Dex):
 
     def _get_eth_prices_query_generator(self):
         return _eth_prices_query_generator
+
+    def _populate_uni_prices(self, snaps: List[ShareSnap]):
+        relevant_snaps = [snap for snap in snaps if snap.block >= self.uni_price_first_block]
+        if not relevant_snaps:
+            return
+        blocks = {snap.block for snap in relevant_snaps}
+        bal_prices = self._get_uni_usd_prices(blocks)
+        for snap in relevant_snaps:
+            snap.yield_token_price = bal_prices[snap.block]
+
+    def _get_uni_usd_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
+        """
+        Fetch eth prices in specific block times.
+        (used to denominate the returns in ETH)
+        """
+        query = ''.join(_uni_reserves_query_generator(blocks))
+        data = self.dex_graph.query(query, {})
+        return {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
+                block, val in data['data'].items()}
 
     def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
         query = '''{

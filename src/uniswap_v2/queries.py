@@ -69,3 +69,30 @@ def _staked_query_generator(staked: List) -> str:
         }}
         '''
     yield '}'
+
+
+def _uni_reserves_query_generator(blocks: Iterable[int]) -> str:
+    """
+    Used to compute the value of UNI.
+
+    Example return value:
+    {
+        t10692365: pair(block: { number: 10692365 }, id: "0xd3d2e2692501a5c9ca623199d38826e513033a17") {
+            reserve0
+            reserveUSD
+        }
+        t10880437: pair(block: { number: 10880437 }, id: "0xd3d2e2692501a5c9ca623199d38826e513033a17") {
+            reserve0
+            reserveUSD
+        }
+    }
+    """
+    yield '{'
+    for block in blocks:
+        yield f'''
+            t{block}: pair(block: {{ number: {block} }}, id: "0xd3d2e2692501a5c9ca623199d38826e513033a17") {{
+                reserve0
+                reserveUSD
+            }}
+            '''
+    yield '}'
