@@ -70,3 +70,25 @@ def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
             }}
             '''
     yield '}'
+
+
+def _bal_prices_query_generator(blocks: Iterable[int]) -> str:
+    """
+    Example return value:
+    {
+        t10692365: tokenPrice(block: { number: 10692365 }, id: "0xba100000625a3754423978a60c9317c58a424e3d") {
+            price
+        }
+        t10880437: tokenPrice(block: { number: 10880437 }, id: "0xba100000625a3754423978a60c9317c58a424e3d") {
+            price
+        }
+    }
+    """
+    yield '{'
+    for block in blocks:
+        yield f'''
+            t{block}: tokenPrice(block: {{ number: {block} }}, id: "0xba100000625a3754423978a60c9317c58a424e3d") {{
+                price
+            }}
+            '''
+    yield '}'

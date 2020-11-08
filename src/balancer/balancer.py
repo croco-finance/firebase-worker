@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 from typing import List, Dict, Iterable
 
-from src.balancer.queries import share_query_generator, _eth_prices_query_generator
+from src.balancer.queries import share_query_generator, _eth_prices_query_generator, _bal_prices_query_generator
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool
 
@@ -14,6 +14,8 @@ class Balancer(Dex):
 
     def __init__(self):
         super().__init__('/subgraphs/name/balancer-labs/balancer', Exchange.BALANCER)
+        # rewards start at 10322999 but at that point the prices are not yet in the graph
+        self.bal_price_first_block = 10323092
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         skip = 0
@@ -31,6 +33,7 @@ class Balancer(Dex):
             snaps = self._parse_snaps(raw_snaps)
             if snaps:
                 self._populate_eth_prices(snaps)
+                self._populate_bal_prices(snaps)
 
             yield snaps
             skip += query_limit
@@ -87,9 +90,29 @@ class Balancer(Dex):
                 int(timestamp_),
                 tx_[1:],
                 Decimal(tx_cost_wei) * Decimal('1E-18'),
+                None,
                 None
             ))
         return snaps
+
+    def _populate_bal_prices(self, snaps: List[ShareSnap]):
+        relevant_snaps = [snap for snap in snaps if snap.block >= self.bal_price_first_block]
+        if not relevant_snaps:
+            return
+        blocks = {snap.block for snap in relevant_snaps}
+        bal_prices = self._get_bal_usd_prices(blocks)
+        for snap in relevant_snaps:
+            snap.yield_token_price = bal_prices[snap.block]
+
+    def _get_bal_usd_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
+        """
+        Fetch eth prices in specific block times.
+        (used to denominate the returns in ETH)
+        """
+        query = ''.join(_bal_prices_query_generator(blocks))
+        data = self.dex_graph.query(query, {})
+        return {int(block[1:]): Decimal(price['price']) for
+                block, price in data['data'].items()}
 
     def _get_eth_prices_query_generator(self):
         return _eth_prices_query_generator
