@@ -46,6 +46,7 @@ class Controller:
             if snap.block > highest_block:
                 highest_block = snap.block
         self.last_update_ref.child('snaps').set(highest_block - 1)
+        self.last_update['snaps'] = highest_block - 1
 
     @staticmethod
     def _get_lowest_highest_block(snaps: List[ShareSnap]):
