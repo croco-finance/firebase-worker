@@ -57,7 +57,6 @@ class ShareSnap(object):
     pool_id: str
     liquidity_token_balance: Decimal
     liquidity_token_total_supply: Decimal
-    reserves_usd: Decimal
     tokens: List[PoolToken]
     block: int
     timestamp: int
@@ -73,7 +72,6 @@ class ShareSnap(object):
             'exchange': str(self.exchange.name),
             'liquidityTokenBalance': str(self.liquidity_token_balance),
             'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
-            'reservesUsd': str(self.reserves_usd),
             'tokens': [token.to_serializable() for token in self.tokens],
             'block': self.block,
             'timestamp': self.timestamp,

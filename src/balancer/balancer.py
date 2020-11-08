@@ -98,7 +98,6 @@ class Balancer(Dex):
                 pool['id'],
                 Decimal(share['balance']),
                 Decimal(pool['totalShares']),
-                reserves_usd,
                 tokens,
                 int(block_),
                 int(timestamp_),
