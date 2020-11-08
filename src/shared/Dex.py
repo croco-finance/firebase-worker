@@ -59,7 +59,7 @@ class Dex(ABC):
         """
         raise NotImplementedError()
 
-    def fetch_rewards(self, last_block_update: int, batch_block_range: int) -> Iterable[List[YieldReward]]:
+    def fetch_yields(self, last_block_update: int, batch_block_range: int) -> Iterable[List[YieldReward]]:
         """
         Returns Yield rewards for a given exchange.
         """
@@ -85,7 +85,8 @@ class Dex(ABC):
                 '$EXCHANGE': self.exchange.name,
             }
             raw_rewards = self.rewards_graph.query(query, params)['data']['rewards']
-            yield [self._parse_reward(reward) for reward in raw_rewards]
+            yield [self._parse_yield(reward) for reward in raw_rewards]
+            first_block = last_block
 
     def _get_current_block(self) -> int:
         query = '''
@@ -99,7 +100,7 @@ class Dex(ABC):
         # Set current block info on current positions
         return int(resp['data']['currentBlock']['number'])
 
-    def _parse_reward(self, reward: Dict) -> YieldReward:
+    def _parse_yield(self, reward: Dict) -> YieldReward:
         return YieldReward(
             reward['id'],
             self.exchange,
