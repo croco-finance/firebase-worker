@@ -114,5 +114,5 @@ class YieldReward(object):
             'txHash': self.tx_hash,
         }
         if self.pool_id:
-            serializable['poolId'] = str(self.yield_token_price)
+            serializable['poolId'] = str(self.pool_id)
         return serializable
