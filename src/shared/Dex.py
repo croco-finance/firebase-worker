@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import List, Dict, Iterable
 
-from src.shared.type_definitions import ShareSnap, Exchange
+from src.shared.type_definitions import ShareSnap, Exchange, Pool
 from src.subgraph import SubgraphReader
 
 
@@ -48,5 +48,12 @@ class Dex(ABC):
         """
         Get a generator which is then used to build the request for eth prices
         from thegraph.com.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
+        """
+        Returns pools at recent block.
         """
         raise NotImplementedError()

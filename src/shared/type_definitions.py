@@ -43,10 +43,18 @@ class Exchange(Enum):
 
 
 @attr.s(auto_attribs=True)
-class YieldReward(object):
-    token: CurrencyField
-    price: Decimal
-    amount: Decimal
+class Pool(object):
+    id: str
+    exchange: Exchange
+    liquidity_token_total_supply: Decimal
+    tokens: List[PoolToken]
+
+    def to_serializable(self) -> Dict:
+        return {
+            'exchange': str(self.exchange.name),
+            'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
+            'tokens': [token.to_serializable() for token in self.tokens],
+        }
 
 
 @attr.s(auto_attribs=True)
@@ -80,3 +88,10 @@ class ShareSnap(object):
             'txCostEth': str(self.tx_cost_eth) if self.tx_cost_eth else None,
             'ethPrice': str(self.eth_price)
         }
+
+
+@attr.s(auto_attribs=True)
+class YieldReward(object):
+    token: CurrencyField
+    price: Decimal
+    amount: Decimal

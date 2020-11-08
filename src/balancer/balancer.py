@@ -4,7 +4,7 @@ from typing import List, Dict, Iterable
 
 from src.balancer.queries import share_query_generator, _eth_prices_query_generator
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange
+from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool
 
 
 class Balancer(Dex):
@@ -73,32 +73,16 @@ class Balancer(Dex):
                                 f'key: {key}')
                 continue
             share = share_list[0]
-            pool = share['poolId']
-            total_weight = Decimal(pool['totalWeight'])
-            reserves_usd = Decimal(pool['liquidity'])
-            tokens: List[PoolToken] = []
-            for token in pool['tokens']:
-                token_weight = Decimal(token['denormWeight']) / total_weight
-                token_reserve = Decimal(token['balance'])
-                price_usd = reserves_usd * token_weight / token_reserve if token_reserve != 0 else 0
-                tokens.append(PoolToken(
-                    CurrencyField(symbol=token['symbol'],
-                                  name=token['name'],
-                                  contract_address=token['address'],
-                                  platform='ethereum'),
-                    token_weight,
-                    token_reserve,
-                    price_usd,
-                ))
+            pool = self._parse_pool(share['poolId'])
             tx_, block_, timestamp_, tx_cost_wei, user_addr = key.split('_')
             snaps.append(ShareSnap(
                 tx_[1:],  # This ID might not be unique if user did multiple changes in one call but I don't care
                 self.exchange,
                 user_addr,
-                pool['id'],
+                pool.id,
                 Decimal(share['balance']),
-                Decimal(pool['totalShares']),
-                tokens,
+                pool.liquidity_token_total_supply,
+                pool.tokens,
                 int(block_),
                 int(timestamp_),
                 tx_[1:],
@@ -109,3 +93,57 @@ class Balancer(Dex):
 
     def _get_eth_prices_query_generator(self):
         return _eth_prices_query_generator
+
+    def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
+        query = '''{
+            pools(first: $MAX_OBJECTS, skip: $SKIP) {
+                id
+                symbol
+                totalWeight
+                totalShares
+                liquidity
+                tokens {
+                    symbol
+                    name
+                    address
+                    denormWeight
+                    balance
+                }
+            }
+        }'''
+        skip = 0
+        while True:
+            params = {
+                '$MAX_OBJECTS': query_limit,
+                '$SKIP': skip,
+            }
+            raw_pools = self.dex_graph.query(query, params)['data']['pools']
+            if not raw_pools:
+                break
+
+            yield [self._parse_pool(pool) for pool in raw_pools]
+            skip += query_limit
+
+    def _parse_pool(self, raw_pool: Dict) -> Pool:
+        total_weight = Decimal(raw_pool['totalWeight'])
+        reserves_usd = Decimal(raw_pool['liquidity'])
+        tokens: List[PoolToken] = []
+        for token in raw_pool['tokens']:
+            token_weight = Decimal(token['denormWeight']) / total_weight
+            token_reserve = Decimal(token['balance'])
+            price_usd = reserves_usd * token_weight / token_reserve if token_reserve != 0 else 0
+            tokens.append(PoolToken(
+                CurrencyField(symbol=token['symbol'],
+                              name=token['name'],
+                              contract_address=token['address'],
+                              platform='ethereum'),
+                token_weight,
+                token_reserve,
+                price_usd,
+            ))
+        return Pool(
+            raw_pool['id'],
+            self.exchange,
+            Decimal(raw_pool['totalShares']),
+            tokens,
+        )
