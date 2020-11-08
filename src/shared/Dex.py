@@ -1,8 +1,9 @@
+import logging
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import List, Dict, Iterable
 
-from src.shared.type_definitions import ShareSnap, Exchange, Pool
+from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward
 from src.subgraph import SubgraphReader
 
 
@@ -57,3 +58,55 @@ class Dex(ABC):
         Returns pools at recent block.
         """
         raise NotImplementedError()
+
+    def fetch_rewards(self, last_block_update: int, batch_block_range: int) -> Iterable[List[YieldReward]]:
+        """
+        Returns Yield rewards for a given exchange.
+        """
+        query = '''{
+            rewards(first: 1000, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $MIN_BLOCK, blockNumber_lt: $MAX_BLOCK, exchange: "$EXCHANGE"}) {
+                id
+                exchange
+                pool
+                amount
+                user
+                transaction
+                blockNumber
+                blockTimestamp
+            }
+        }'''
+        first_block, current_block = last_block_update, self._get_current_block()
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
+        while first_block < current_block:
+            last_block = first_block + batch_block_range
+            params = {
+                '$MIN_BLOCK': first_block,
+                '$MAX_BLOCK': last_block,
+                '$EXCHANGE': self.exchange.name,
+            }
+            raw_rewards = self.rewards_graph.query(query, params)['data']['rewards']
+            yield [self._parse_reward(reward) for reward in raw_rewards]
+
+    def _get_current_block(self) -> int:
+        query = '''
+        {
+            currentBlock(id: "CURRENT"){
+                number
+            }
+        }
+        '''
+        resp = self.rewards_graph.query(query, {})
+        # Set current block info on current positions
+        return int(resp['data']['currentBlock']['number'])
+
+    def _parse_reward(self, reward: Dict) -> YieldReward:
+        return YieldReward(
+            reward['id'],
+            self.exchange,
+            reward['user'],
+            reward['pool'],
+            Decimal(reward['amount']),
+            int(reward['blockNumber']),
+            int(reward['blockTimestamp']),
+            reward['transaction']
+        )

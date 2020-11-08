@@ -90,18 +90,6 @@ class Uniswap(Dex):
             yield merged_snaps
             first_block = last_block
 
-    def _get_current_block(self) -> int:
-        query = '''
-        {
-            currentBlock(id: "CURRENT"){
-                number
-            }
-        }
-        '''
-        resp = self.rewards_graph.query(query, {})
-        # Set current block info on current positions
-        return int(resp['data']['currentBlock']['number'])
-
     def _process_snap(self, snap: Dict) -> ShareSnap:
         reserves_usd = Decimal(snap['reserveUSD'])
         tokens: List[PoolToken] = []

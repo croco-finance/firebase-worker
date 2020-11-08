@@ -96,6 +96,23 @@ class ShareSnap(object):
 @attr.s(auto_attribs=True)
 class YieldReward(object):
     id: str
+    exchange: Exchange
     user_addr: str
-    token: CurrencyField
+    pool_id: Optional[str]
     amount: Decimal
+    block: int
+    timestamp: int
+    tx_hash: str
+
+    def to_serializable(self) -> Dict:
+        serializable = {
+            'id': self.id,
+            'exchange': str(self.exchange.name),
+            'amount': str(self.amount),
+            'block': self.block,
+            'timestamp': self.timestamp,
+            'txHash': self.tx_hash,
+        }
+        if self.pool_id:
+            serializable['poolId'] = str(self.yield_token_price)
+        return serializable
