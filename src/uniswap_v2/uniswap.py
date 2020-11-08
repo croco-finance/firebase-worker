@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List, Dict, Iterable
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange
+from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
 from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator
 
 
@@ -37,36 +37,34 @@ class Uniswap(Dex):
         super().__init__('/subgraphs/name/uniswap/uniswap-v2', Exchange.UNI_V2)
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
-        query = '''
-                {
-                    snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
+        query = '''{
+            snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
+                id
+                timestamp
+                block
+                user {
+                    id
+                }
+                pair {
+                    id
+                    token0 {
                         id
-                        timestamp
-                        block
-                        user {
-                            id
-                        }
-                        pair {
-                            id
-                            token0 {
-                                id
-                                symbol
-                                name
-                            }
-                            token1 {
-                                id
-                                symbol
-                                name
-                            }
-                        }
-                        reserve0
-                        reserve1
-                        reserveUSD
-                        totalSupply: liquidityTokenTotalSupply
-                        liquidityTokenBalance
+                        symbol
+                        name
+                    }
+                    token1 {
+                        id
+                        symbol
+                        name
                     }
                 }
-                '''
+                reserve0
+                reserve1
+                reserveUSD
+                totalSupply: liquidityTokenTotalSupply
+                liquidityTokenBalance
+            }
+        }'''
         first_block, current_block = last_block_update, self._get_current_block()
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
         while first_block < current_block:
@@ -252,3 +250,57 @@ class Uniswap(Dex):
 
     def _get_eth_prices_query_generator(self):
         return _eth_prices_query_generator
+
+    def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
+        query = '''{
+            pairs(first: $MAX_OBJECTS, skip: $SKIP) {
+                id
+                reserveUSD
+                reserve0
+                reserve1
+                totalSupply
+                token0 {
+                    id
+                    symbol
+                    name
+                }
+                token1 {
+                    id
+                    symbol
+                    name
+                }
+            }
+        }'''
+        skip = 0
+        while True:
+            params = {
+                '$MAX_OBJECTS': query_limit,
+                '$SKIP': skip,
+            }
+            raw_pools = self.dex_graph.query(query, params)['data']['pairs']
+            if not raw_pools:
+                break
+
+            yield [self._parse_pool(pool) for pool in raw_pools]
+            skip += query_limit
+
+    def _parse_pool(self, raw_pool: Dict) -> Pool:
+        reserves_usd = Decimal(raw_pool['reserveUSD'])
+        tokens: List[PoolToken] = []
+        for i in range(2):
+            tok, res = raw_pool[f'token{i}'], Decimal(raw_pool[f'reserve{i}'])
+            price_usd = reserves_usd / (2 * res) if res else 0
+            tokens.append(PoolToken(CurrencyField(symbol=tok['symbol'],
+                                                  name=tok['name'],
+                                                  contract_address=tok['id'],
+                                                  platform='ethereum'),
+                                    Decimal('0.5'),
+                                    res,
+                                    price_usd
+                                    ))
+        return Pool(
+            raw_pool['id'],
+            self.exchange,
+            Decimal(raw_pool['totalSupply']),
+            tokens,
+        )
