@@ -22,9 +22,9 @@ class Controller:
         self.last_update_ref = self.root_ref.child('lastUpdate').child(self.exchange_name)
         self.last_update = self.last_update_ref.get()
 
-    def update_snaps(self):
+    def update_snaps(self, query_limit):
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit=50):
+        for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit):
             if snaps:
                 assert len(snaps) < 900, f'Reached dangerous amount of snaps in a batch  {len(snaps)}' \
                                          '-> not all snaps might fit into the response for this reason' \
@@ -58,9 +58,9 @@ class Controller:
                 lowest_ = snap.block
         return lowest_, highest_
 
-    def update_yields(self):
+    def update_yields(self, query_limit):
         prev_lowest, prev_highest = 1000000000, 0
-        for yields in self.instance.fetch_yields(self.last_update['yields'], 30):
+        for yields in self.instance.fetch_yields(self.last_update['yields'], query_limit):
             if yields:
                 assert len(yields) < 900, f'Reached dangerous amount of yield rewards in a batch  {len(yields)}' \
                                           '-> not all snaps might fit into the response for this reason' \
@@ -83,8 +83,8 @@ class Controller:
         self.last_update_ref.child('yields').set(highest_block - 1)
         self.last_update['yields'] = highest_block - 1
 
-    def update_pools(self):
-        for pools in self.instance.fetch_pools(query_limit=100):
+    def update_pools(self, query_limit):
+        for pools in self.instance.fetch_pools(query_limit):
             if pools:
                 assert len(pools) < 900, f'Reached dangerous amount of pools in a batch {len(pools)}' \
                                          '-> not all pools might fit into the response for this reason' \
