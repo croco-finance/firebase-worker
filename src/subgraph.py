@@ -10,8 +10,8 @@ class SubgraphReader:
     """
 
     def __init__(self, subgraph_url):
-        # provider = 'https://api.thegraph.com//'
-        provider = 'http://graph.marlin.pro/'
+        provider = 'https://api.thegraph.com/'
+        # provider = 'http://graph.marlin.pro/'
         self.url = urljoin(provider, subgraph_url)
 
     def query(self, query, params=None):
@@ -20,13 +20,9 @@ class SubgraphReader:
         """
         if params:
             query = self._pass_params(query, params)
-        result = None
-        for i in range(5):
-            result = requests.post(self.url, json={'query': query}).json()
-            if result and 'data' in result:
-                break
-            else:
-                logging.warning(f'Request fetching failed. Result: {result}')
+        result = requests.post(self.url, json={'query': query}).json()
+        if result and 'data' not in result:
+            logging.warning(f'Request fetching failed. Result: {result}')
         return result
 
     @staticmethod

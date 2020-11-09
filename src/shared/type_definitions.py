@@ -5,7 +5,7 @@ from typing import List, Optional, Dict
 import attr
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, slots=True)
 class CurrencyField(object):
     symbol: str
     name: str
@@ -21,7 +21,7 @@ class CurrencyField(object):
         }
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, slots=True)
 class PoolToken(object):
     token: CurrencyField
     weight: Decimal  # weights are normalized to (0,1)
@@ -42,7 +42,7 @@ class Exchange(Enum):
     BALANCER = 1
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, slots=True)
 class Pool(object):
     id: str
     exchange: Exchange
@@ -57,7 +57,7 @@ class Pool(object):
         }
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, slots=True)
 class ShareSnap(object):
     id: str
     exchange: Exchange
@@ -93,7 +93,7 @@ class ShareSnap(object):
         return serializable
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, slots=True)
 class YieldReward(object):
     id: str
     exchange: Exchange
