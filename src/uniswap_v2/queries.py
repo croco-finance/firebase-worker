@@ -1,7 +1,7 @@
 from typing import Iterable, List
 
 
-def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
+def _eth_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     """
     Example return value:
     {
@@ -14,16 +14,16 @@ def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
     }
     """
     yield '{'
-    for block in blocks:
+    for block_height in block_heights:
         yield f'''
-            t{block}: bundle(id: "1", block: {{ number: {block} }}) {{
+            t{block_height}: bundle(id: "1", block: {{ number: {block_height} }}) {{
                 price: ethPrice
             }}
             '''
     yield '}'
 
 
-def _staked_query_generator(staked: List) -> str:
+def _staked_query_generator(staked: List) -> Iterable[str]:
     """
     Example return value:
     {
@@ -71,7 +71,7 @@ def _staked_query_generator(staked: List) -> str:
     yield '}'
 
 
-def _uni_reserves_query_generator(blocks: Iterable[int]) -> str:
+def _uni_reserves_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     """
     Used to compute the value of UNI.
 
@@ -88,9 +88,9 @@ def _uni_reserves_query_generator(blocks: Iterable[int]) -> str:
     }
     """
     yield '{'
-    for block in blocks:
+    for block_height in block_heights:
         yield f'''
-            t{block}: pair(block: {{ number: {block} }}, id: "0xd3d2e2692501a5c9ca623199d38826e513033a17") {{
+            t{block_height}: pair(block: {{ number: {block_height} }}, id: "0xd3d2e2692501a5c9ca623199d38826e513033a17") {{
                 reserve0
                 reserveUSD
             }}

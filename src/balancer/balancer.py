@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Callable
 
 from src.balancer.queries import share_query_generator, _eth_prices_query_generator, _bal_prices_query_generator
 from src.shared.Dex import Dex
@@ -116,7 +116,7 @@ class Balancer(Dex):
         return {int(block[1:]): Decimal(price['price']) for
                 block, price in data['data'].items()}
 
-    def _get_eth_prices_query_generator(self):
+    def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
     def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:

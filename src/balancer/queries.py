@@ -1,7 +1,7 @@
 from typing import Iterable
 
 
-def share_query_generator(txs: list) -> str:
+def share_query_generator(txs: list) -> Iterable[str]:
     yield "{"
     for tx in txs:
         user_address = tx['userAddress']['id']
@@ -50,7 +50,7 @@ def _qet_pool_query(timestamp: int, pool_id: str, balance: str,
     }}'''
 
 
-def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
+def _eth_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     """
     Example return value:
     {
@@ -63,16 +63,16 @@ def _eth_prices_query_generator(blocks: Iterable[int]) -> str:
     }
     """
     yield '{'
-    for block in blocks:
+    for block_height in block_heights:
         yield f'''
-            t{block}: tokenPrice(block: {{ number: {block} }}, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {{
+            t{block_height}: tokenPrice(block: {{ number: {block_height} }}, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {{
                 price
             }}
             '''
     yield '}'
 
 
-def _bal_prices_query_generator(blocks: Iterable[int]) -> str:
+def _bal_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     """
     Example return value:
     {
@@ -85,9 +85,9 @@ def _bal_prices_query_generator(blocks: Iterable[int]) -> str:
     }
     """
     yield '{'
-    for block in blocks:
+    for block_height in block_heights:
         yield f'''
-            t{block}: tokenPrice(block: {{ number: {block} }}, id: "0xba100000625a3754423978a60c9317c58a424e3d") {{
+            t{block_height}: tokenPrice(block: {{ number: {block_height} }}, id: "0xba100000625a3754423978a60c9317c58a424e3d") {{
                 price
             }}
             '''

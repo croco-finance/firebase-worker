@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from decimal import Decimal
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Callable
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
@@ -242,7 +242,7 @@ class Uniswap(Dex):
                 merged_snaps.append(snap)
         return merged_snaps
 
-    def _get_eth_prices_query_generator(self):
+    def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
     def _populate_uni_prices(self, snaps: List[ShareSnap]):

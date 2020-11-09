@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Callable
 
 from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward
 from src.subgraph import SubgraphReader
@@ -45,7 +45,7 @@ class Dex(ABC):
                 block, price in data['data'].items()}
 
     @abstractmethod
-    def _get_eth_prices_query_generator(self):
+    def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         """
         Get a generator which is then used to build the request for eth prices
         from thegraph.com.
