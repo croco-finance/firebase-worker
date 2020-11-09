@@ -25,6 +25,7 @@ class Balancer(Dex):
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
+            # The number of txs will not add up to query limit, due to tx filtering
             txs = self._get_txs(params)
             if not txs:
                 break
@@ -65,6 +66,7 @@ class Balancer(Dex):
             if tx['tx'] not in tx_hashes:
                 tx_hashes.add(tx['tx'])
                 filtered_txs.append(tx)
+        logging.info(f'Filtered: {len(data["transactions"]) - len(filtered_txs)} txs due to duplicity')
         return filtered_txs
 
     def _parse_snaps(self, shares: Dict[str, Dict]) -> List[ShareSnap]:
