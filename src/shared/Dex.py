@@ -53,7 +53,7 @@ class Dex(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int) -> Iterable[List[Pool]]:
         """
         Returns pools at recent block.
         """

@@ -82,13 +82,10 @@ class Controller:
         self.last_update_ref.child('yields').set(highest_block - 1)
         self.last_update['yields'] = highest_block - 1
 
-    def update_pools(self, query_limit):
+    def update_pools(self, max_objects_in_batch):
         logging.info('POOL UPDATE INITIATED')
-        for pools in self.instance.fetch_pools(query_limit):
+        for pools in self.instance.fetch_pools(max_objects_in_batch):
             if pools:
-                assert len(pools) < 900, f'Reached dangerous amount of pools in a batch {len(pools)}' \
-                                         '-> not all pools might fit into the response for this reason' \
-                                         '-> DECREASE QUERY LIMIT!'
                 self._upload_pools(pools)
 
     def _upload_pools(self, pools: List[Pool]):

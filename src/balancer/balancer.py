@@ -119,7 +119,7 @@ class Balancer(Dex):
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
-    def fetch_pools(self, query_limit: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int) -> Iterable[List[Pool]]:
         query = '''{
             pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc) {
                 id
@@ -139,7 +139,7 @@ class Balancer(Dex):
         skip = 0
         while True:
             params = {
-                '$MAX_OBJECTS': query_limit,
+                '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
             }
             raw_pools = self.dex_graph.query(query, params)['data']['pools']
@@ -147,7 +147,7 @@ class Balancer(Dex):
                 break
 
             yield [self._parse_pool(pool) for pool in raw_pools]
-            skip += query_limit
+            skip += max_objects_in_batch
 
     def _parse_pool(self, raw_pool: Dict) -> Pool:
         total_weight = Decimal(raw_pool['totalWeight'])
