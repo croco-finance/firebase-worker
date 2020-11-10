@@ -13,7 +13,7 @@ class Balancer(Dex):
     """
 
     def __init__(self):
-        super().__init__('/subgraphs/name/balancer-labs/balancer', Exchange.BALANCER)
+        super().__init__('balancer-labs/balancer', Exchange.BALANCER)
         # rewards start at 10322999 but at that point the prices are not yet in the graph
         self.bal_price_first_block = 10323092
 

@@ -9,10 +9,10 @@ class SubgraphReader:
     General read handler of subgraph's data.
     """
 
-    def __init__(self, subgraph_url):
-        provider = 'https://api.thegraph.com/'
-        # provider = 'http://graph.marlin.pro/'
-        self.url = urljoin(provider, subgraph_url)
+    def __init__(self, subgraph_name):
+        provider = 'https://api.thegraph.com/subgraphs/name/'
+        # provider = 'http://graph.marlin.pro/subgraphs/name/'
+        self.url = urljoin(provider, subgraph_name)
 
     def query(self, query, params=None):
         """

@@ -33,7 +33,7 @@ class Uniswap(Dex):
     }
 
     def __init__(self):
-        super().__init__('/subgraphs/name/benesjan/uniswap-v2', Exchange.UNI_V2)
+        super().__init__('benesjan/uniswap-v2', Exchange.UNI_V2)
         self.uni_price_first_block = 10876348
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
