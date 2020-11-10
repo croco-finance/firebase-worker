@@ -23,6 +23,7 @@ class Controller:
         self.last_update = self.last_update_ref.get()
 
     def update_snaps(self, query_limit):
+        logging.info('SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
         for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit):
             if snaps:
@@ -59,6 +60,7 @@ class Controller:
         return lowest_, highest_
 
     def update_yields(self, query_limit):
+        logging.info('YIELD UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
         for yields in self.instance.fetch_yields(self.last_update['yields'], query_limit):
             if yields:
@@ -84,6 +86,7 @@ class Controller:
         self.last_update['yields'] = highest_block - 1
 
     def update_pools(self, query_limit):
+        logging.info('POOL UPDATE INITIATED')
         for pools in self.instance.fetch_pools(query_limit):
             if pools:
                 assert len(pools) < 900, f'Reached dangerous amount of pools in a batch {len(pools)}' \
