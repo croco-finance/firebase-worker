@@ -42,7 +42,7 @@ class Balancer(Dex):
     def _get_txs(self, params: Dict) -> List[Dict]:
         query = '''
         {
-            transactions(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gt: $BLOCK, event_in:["join", "exit"]}) {
+            transactions(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK, event_in:["join", "exit"]}) {
                 tx
                 block
                 timestamp

@@ -64,7 +64,7 @@ class Dex(ABC):
         Returns Yield rewards for a given exchange.
         """
         query = '''{
-            rewards(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gt: $BLOCK, exchange: "$EXCHANGE"}) {
+            rewards(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, exchange: "$EXCHANGE"}) {
                 id
                 exchange
                 pool

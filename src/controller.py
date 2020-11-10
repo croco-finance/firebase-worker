@@ -46,8 +46,8 @@ class Controller:
             snap_ref.set(snap.to_serializable())
             if snap.block > highest_block:
                 highest_block = snap.block
-        self.last_update_ref.child('snaps').set(highest_block - 1)
-        self.last_update['snaps'] = highest_block - 1
+        self.last_update_ref.child('snaps').set(highest_block)
+        self.last_update['snaps'] = highest_block
 
     @staticmethod
     def _get_lowest_highest_block(vals):
@@ -79,8 +79,8 @@ class Controller:
             yield_ref.set(yield_.to_serializable())
             if yield_.block > highest_block:
                 highest_block = yield_.block
-        self.last_update_ref.child('yields').set(highest_block - 1)
-        self.last_update['yields'] = highest_block - 1
+        self.last_update_ref.child('yields').set(highest_block)
+        self.last_update['yields'] = highest_block
 
     def update_pools(self, max_objects_in_batch):
         logging.info('POOL UPDATE INITIATED')
