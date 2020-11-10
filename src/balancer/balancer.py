@@ -74,7 +74,7 @@ class Balancer(Dex):
         for key, share_list in shares.items():
             if len(share_list) != 1:
                 # Occurs for weird unused pools on Balancer - ignoring for now
-                logging.warning(f'Incorrect number of pool shares in a list: {share_list}'
+                logging.warning(f'Incorrect number of pool shares in a list: {share_list}, '
                                 f'key: {key}')
                 continue
             share = share_list[0]
