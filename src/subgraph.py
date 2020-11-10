@@ -22,7 +22,7 @@ class SubgraphReader:
             query = self._pass_params(query, params)
         result = requests.post(self.url, json={'query': query}).json()
         if result and 'data' not in result:
-            logging.warning(f'Request fetching failed. Result: {result}')
+            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}')
         return result
 
     @staticmethod

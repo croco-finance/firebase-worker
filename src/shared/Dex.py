@@ -59,12 +59,12 @@ class Dex(ABC):
         """
         raise NotImplementedError()
 
-    def fetch_yields(self, last_block_update: int, batch_block_range: int) -> Iterable[List[YieldReward]]:
+    def fetch_yields(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[YieldReward]]:
         """
         Returns Yield rewards for a given exchange.
         """
         query = '''{
-            rewards(first: 1000, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $MIN_BLOCK, blockNumber_lt: $MAX_BLOCK, exchange: "$EXCHANGE"}) {
+            rewards(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gt: $BLOCK, exchange: "$EXCHANGE"}) {
                 id
                 exchange
                 pool
@@ -77,16 +77,17 @@ class Dex(ABC):
         }'''
         first_block, current_block = last_block_update, self._get_current_block()
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
+        skip = 0
         while first_block < current_block:
-            last_block = first_block + batch_block_range
             params = {
-                '$MIN_BLOCK': first_block,
-                '$MAX_BLOCK': last_block,
+                '$MAX_OBJECTS': max_objects_in_batch,
+                '$SKIP': skip,
+                '$BLOCK': last_block_update,
                 '$EXCHANGE': self.exchange.name,
             }
             raw_rewards = self.rewards_graph.query(query, params)['data']['rewards']
             yield [self._parse_yield(reward) for reward in raw_rewards]
-            first_block = last_block
+            skip += max_objects_in_batch
 
     def _get_current_block(self) -> int:
         query = '''

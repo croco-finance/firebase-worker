@@ -59,14 +59,11 @@ class Controller:
                 lowest_ = snap.block
         return lowest_, highest_
 
-    def update_yields(self, query_limit):
+    def update_yields(self, max_objects_in_batch):
         logging.info('YIELD UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
-        for yields in self.instance.fetch_yields(self.last_update['yields'], query_limit):
+        for yields in self.instance.fetch_yields(self.last_update['yields'], max_objects_in_batch):
             if yields:
-                assert len(yields) < 900, f'Reached dangerous amount of yield rewards in a batch  {len(yields)}' \
-                                          '-> not all snaps might fit into the response for this reason' \
-                                          '-> DECREASE QUERY LIMIT!'
                 lowest, highest = self._get_lowest_highest_block(yields)
                 logging.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
