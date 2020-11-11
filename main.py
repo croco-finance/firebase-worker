@@ -26,8 +26,9 @@ if __name__ == '__main__':
     while True:
         try:
             controller.update_snaps(query_limit=100)
-            controller.update_yields(query_limit=30)
+            controller.update_yields(max_objects_in_batch=100)
             # controller.update_pools()
+            logging.info(f'FINISHED SYNC')
             break
         except Exception as e:
             logging.error(f'CONTROL LOOP EXCEPTION OCCURRED: {e}')

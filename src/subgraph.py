@@ -24,10 +24,10 @@ class SubgraphReader:
             query = self._pass_params(query, params)
         result = requests.post(self.url, json={'query': query}).json()
         if result and 'data' not in result:
-            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}')
             for error in result['errors']:
                 if error['message'] == 'Null value resolved for non-null field `user`':
                     raise NonExistentUserException()
+            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}')
         return result
 
     @staticmethod

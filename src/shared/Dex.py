@@ -73,10 +73,9 @@ class Dex(ABC):
                 blockTimestamp
             }
         }'''
-        first_block, current_block = last_block_update, self._get_current_block()
-        logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}')
         skip = 0
-        while first_block < current_block:
+        while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
@@ -84,6 +83,9 @@ class Dex(ABC):
                 '$EXCHANGE': self.exchange.name,
             }
             raw_rewards = self.rewards_graph.query(query, params)['data']['rewards']
+            if not raw_rewards:
+                break
+
             yield [self._parse_yield(reward) for reward in raw_rewards]
             skip += max_objects_in_batch
 
