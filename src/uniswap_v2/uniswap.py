@@ -89,6 +89,13 @@ class Uniswap(Dex):
 
             yield merged_snaps
             first_block = last_block
+            # Feedback regulating query limit in order to not get near the 1000 entities/request limit
+            if len(snaps) > 300 and query_limit > 2:
+                query_limit -= 1
+                logging.info(f'Decreased query limit to: {query_limit}')
+            elif len(snaps) < 50:
+                query_limit += 1
+                logging.info(f'Increased query limit to: {query_limit}')
 
     def _process_snap(self, snap: Dict) -> ShareSnap:
         reserves_usd = Decimal(snap['reserveUSD'])
