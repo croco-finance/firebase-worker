@@ -48,6 +48,7 @@ class Controller:
                 highest_block = snap.block
         self.last_update_ref.child('snaps').set(highest_block)
         self.last_update['snaps'] = highest_block
+        logging.info(f'Updated highest snap firebase block to {highest_block}')
 
     @staticmethod
     def _get_lowest_highest_block(vals):
@@ -81,6 +82,7 @@ class Controller:
                 highest_block = yield_.block
         self.last_update_ref.child('yields').set(highest_block)
         self.last_update['yields'] = highest_block
+        logging.info(f'Updated highest yields firebase block to {highest_block}')
 
     def update_pools(self, max_objects_in_batch):
         logging.info('POOL UPDATE INITIATED')
