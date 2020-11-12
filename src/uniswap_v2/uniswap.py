@@ -102,13 +102,19 @@ class Uniswap(Dex):
         tokens: List[PoolToken] = []
         for i in range(2):
             tok, res = snap['pair'][f'token{i}'], Decimal(snap[f'reserve{i}'])
+            if res:
+                price = reserves_usd / (2 * res)
+            else:
+                price = 0
+                logging.warning(f'0 reserves for token {tok["symbol"]} in snap {snap["id"]}. '
+                                'Setting token price to 0.')
             tokens.append(PoolToken(CurrencyField(symbol=tok['symbol'],
                                                   name=tok['name'],
                                                   contract_address=tok['id'],
                                                   platform='ethereum'),
                                     Decimal('0.5'),
                                     res,
-                                    reserves_usd / (2 * res)
+                                    price
                                     ))
 
         pool_id, block = snap['pair']['id'], snap['block']
