@@ -57,6 +57,9 @@ class Pool(object):
             'exchange': str(self.exchange.name),
             'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
             'tokens': [token.to_serializable() for token in self.tokens],
+            'block': self.block,
+            'ethPrice': str(self.eth_price),
+            'yieldTokenPrice': str(self.yield_token_price)
         }
 
 
