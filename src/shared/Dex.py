@@ -51,6 +51,10 @@ class Dex(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def _get_yield_token_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
+        raise NotImplementedError()
+
+    @abstractmethod
     def fetch_pools(self, max_objects_in_batch: int) -> Iterable[List[Pool]]:
         """
         Returns pools at recent block.

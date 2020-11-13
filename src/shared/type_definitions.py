@@ -48,6 +48,9 @@ class Pool(object):
     exchange: Exchange
     liquidity_token_total_supply: Decimal
     tokens: List[PoolToken]
+    block: int
+    eth_price: Decimal
+    yield_token_price: Decimal
 
     def to_serializable(self) -> Dict:
         return {

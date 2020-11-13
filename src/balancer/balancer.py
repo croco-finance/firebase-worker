@@ -102,11 +102,11 @@ class Balancer(Dex):
         if not relevant_snaps:
             return
         blocks = {snap.block for snap in relevant_snaps}
-        bal_prices = self._get_bal_usd_prices(blocks)
+        bal_prices = self._get_yield_token_prices(blocks)
         for snap in relevant_snaps:
             snap.yield_token_price = bal_prices[snap.block]
 
-    def _get_bal_usd_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
+    def _get_yield_token_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
         """
         Fetch eth prices in specific block times.
         (used to denominate the returns in ETH)
@@ -136,7 +136,9 @@ class Balancer(Dex):
                 }
             }
         }'''
-        skip = 0
+        skip, current_block = 0, self._get_current_block()
+        eth_price = self._get_eth_usd_prices([current_block])[current_block]
+        yield_token_price = self._get_yield_token_prices([current_block])[current_block]
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
@@ -146,10 +148,10 @@ class Balancer(Dex):
             if not raw_pools:
                 break
 
-            yield [self._parse_pool(pool) for pool in raw_pools]
+            yield [self._parse_pool(pool, current_block, eth_price, yield_token_price) for pool in raw_pools]
             skip += max_objects_in_batch
 
-    def _parse_pool(self, raw_pool: Dict) -> Pool:
+    def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal, yield_token_price: Decimal) -> Pool:
         total_weight = Decimal(raw_pool['totalWeight'])
         reserves_usd = Decimal(raw_pool['liquidity'])
         tokens: List[PoolToken] = []
@@ -171,4 +173,7 @@ class Balancer(Dex):
             self.exchange,
             Decimal(raw_pool['totalShares']),
             tokens,
+            block,
+            eth_price,
+            yield_token_price
         )
