@@ -94,7 +94,7 @@ class Dex(ABC):
             skip += max_objects_in_batch
 
     @staticmethod
-    def _get_current_block(graph: SubgraphReader) -> int:
+    def get_highest_indexed_block(graph: SubgraphReader) -> int:
         query = '''
         {
             _meta {
@@ -105,7 +105,6 @@ class Dex(ABC):
         }
         '''
         resp = graph.query(query, {})
-        # Set current block info on current positions
         return int(resp['data']['_meta']['block']['number'])
 
     def _parse_yield(self, reward: Dict) -> YieldReward:

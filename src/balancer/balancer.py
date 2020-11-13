@@ -136,9 +136,9 @@ class Balancer(Dex):
                 }
             }
         }'''
-        skip, current_block = 0, self._get_current_block(self.dex_graph)
-        eth_price = self._get_eth_usd_prices([current_block])[current_block]
-        yield_token_price = self._get_yield_token_prices([current_block])[current_block]
+        skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
+        eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
+        yield_token_price = self._get_yield_token_prices([highest_indexed_block])[highest_indexed_block]
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
@@ -148,7 +148,7 @@ class Balancer(Dex):
             if not raw_pools:
                 break
 
-            yield [self._parse_pool(pool, current_block, eth_price, yield_token_price) for pool in raw_pools]
+            yield [self._parse_pool(pool, highest_indexed_block, eth_price, yield_token_price) for pool in raw_pools]
             skip += max_objects_in_batch
 
     def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal, yield_token_price: Decimal) -> Pool:

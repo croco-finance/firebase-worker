@@ -68,9 +68,10 @@ class Uniswap(Dex):
                 gasPrice
             }
         }'''
-        first_block, current_block = last_block_update, self._get_current_block(self.dex_graph)
-        logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
-        while first_block < current_block:
+        first_block, highest_indexed_block = last_block_update, self.get_highest_indexed_block(self.dex_graph)
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
+                     f'highest indexed block: {highest_indexed_block}')
+        while first_block < highest_indexed_block:
             last_block = first_block + query_limit
             params = {
                 '$MIN_BLOCK': first_block,
@@ -153,7 +154,6 @@ class Uniswap(Dex):
         # 1. Get the positions and snapshots
         staked = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
         staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
-        # Set current block info on current positions
 
         if not staked:
             return []
@@ -297,9 +297,9 @@ class Uniswap(Dex):
                 }
             }
         }'''
-        skip, current_block = 0, self._get_current_block(self.dex_graph)
-        eth_price = self._get_eth_usd_prices([current_block])[current_block]
-        yield_token_price = self._get_yield_token_prices([current_block])[current_block]
+        skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
+        eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
+        yield_token_price = self._get_yield_token_prices([highest_indexed_block])[highest_indexed_block]
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
@@ -309,7 +309,7 @@ class Uniswap(Dex):
             if not raw_pools:
                 break
 
-            yield [self._parse_pool(pool, current_block, eth_price, yield_token_price) for pool in raw_pools]
+            yield [self._parse_pool(pool, highest_indexed_block, eth_price, yield_token_price) for pool in raw_pools]
             skip += max_objects_in_batch
 
     def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal, yield_token_price: Decimal) -> Pool:
