@@ -136,7 +136,7 @@ class Balancer(Dex):
                 }
             }
         }'''
-        skip, current_block = 0, self._get_current_block()
+        skip, current_block = 0, self._get_current_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([current_block])[current_block]
         yield_token_price = self._get_yield_token_prices([current_block])[current_block]
         while True:

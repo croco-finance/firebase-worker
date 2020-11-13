@@ -17,11 +17,9 @@ class UniNullUserFallback(Uniswap):
                 id
             }
         }'''
-        first_block, current_block = last_block_update, self._get_current_block()
-        last_block = first_block + query_limit
         params = {
-            '$MIN_BLOCK': first_block,
-            '$MAX_BLOCK': last_block,
+            '$MIN_BLOCK': last_block_update,
+            '$MAX_BLOCK': last_block_update + query_limit,
         }
         raw_snap_ids = self.dex_graph.query(id_query, params)['data']['snaps']
 
@@ -56,7 +54,7 @@ class UniNullUserFallback(Uniswap):
                 gasPrice
             }
         }'''
-        logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}')
         snaps = []
         for snap_id in raw_snap_ids:
             try:

@@ -93,17 +93,20 @@ class Dex(ABC):
             yield [self._parse_yield(reward) for reward in raw_rewards]
             skip += max_objects_in_batch
 
-    def _get_current_block(self) -> int:
+    @staticmethod
+    def _get_current_block(graph: SubgraphReader) -> int:
         query = '''
         {
-            currentBlock(id: "CURRENT"){
-                number
+            _meta {
+                block {
+                    number
+                }
             }
         }
         '''
-        resp = self.rewards_graph.query(query, {})
+        resp = graph.query(query, {})
         # Set current block info on current positions
-        return int(resp['data']['currentBlock']['number'])
+        return int(resp['data']['_meta']['block']['number'])
 
     def _parse_yield(self, reward: Dict) -> YieldReward:
         return YieldReward(

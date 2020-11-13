@@ -68,7 +68,7 @@ class Uniswap(Dex):
                 gasPrice
             }
         }'''
-        first_block, current_block = last_block_update, self._get_current_block()
+        first_block, current_block = last_block_update, self._get_current_block(self.dex_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, current block: {current_block}')
         while first_block < current_block:
             last_block = first_block + query_limit
@@ -297,7 +297,7 @@ class Uniswap(Dex):
                 }
             }
         }'''
-        skip, current_block = 0, self._get_current_block()
+        skip, current_block = 0, self._get_current_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([current_block])[current_block]
         yield_token_price = self._get_yield_token_prices([current_block])[current_block]
         while True:

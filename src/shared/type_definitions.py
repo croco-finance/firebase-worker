@@ -83,7 +83,6 @@ class ShareSnap(object):
 
     def to_serializable(self) -> Dict:
         serializable = {
-            'id': self.id,
             'exchange': str(self.exchange.name),
             'liquidityTokenBalance': str(self.liquidity_token_balance),
             'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
