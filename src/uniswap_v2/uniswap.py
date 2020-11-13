@@ -73,6 +73,8 @@ class Uniswap(Dex):
                      f'highest indexed block: {highest_indexed_block}')
         while first_block < highest_indexed_block:
             last_block = first_block + query_limit
+            if last_block > highest_indexed_block:
+                last_block = highest_indexed_block
             params = {
                 '$MIN_BLOCK': first_block,
                 '$MAX_BLOCK': last_block,
