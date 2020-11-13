@@ -78,8 +78,8 @@ class Balancer(Dex):
                                 f'key: {key}')
                 continue
             share = share_list[0]
-            pool = self._parse_pool(share['poolId'])
             tx_, block_, timestamp_, tx_cost_wei, user_addr = key.split('_')
+            pool = self._parse_pool(share['poolId'], int(block_), Decimal(0), Decimal(0))
             snaps.append(ShareSnap(
                 tx_[1:],  # This ID might not be unique if user did multiple changes in one call but I don't care
                 self.exchange,
@@ -88,7 +88,7 @@ class Balancer(Dex):
                 Decimal(share['balance']),
                 pool.liquidity_token_total_supply,
                 pool.tokens,
-                int(block_),
+                pool.block,
                 int(timestamp_),
                 tx_[1:],
                 Decimal(tx_cost_wei) * Decimal('1E-18'),
