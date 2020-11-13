@@ -111,7 +111,6 @@ class YieldReward(object):
 
     def to_serializable(self) -> Dict:
         serializable = {
-            'id': self.id,
             'exchange': str(self.exchange.name),
             'amount': str(self.amount),
             'block': self.block,
