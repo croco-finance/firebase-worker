@@ -261,7 +261,8 @@ class Uniswap(Dex):
         return _eth_prices_query_generator
 
     def _populate_uni_prices(self, snaps: List[ShareSnap]):
-        relevant_snaps = [snap for snap in snaps if snap.block >= self.uni_price_first_block]
+        relevant_snaps = [snap for snap in snaps if
+                          snap.block >= self.uni_price_first_block and snap.pool_id in self.POOLS_STAKING_MAP.keys()]
         if not relevant_snaps:
             return
         blocks = {snap.block for snap in relevant_snaps}
