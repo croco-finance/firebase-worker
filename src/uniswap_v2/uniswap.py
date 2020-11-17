@@ -32,8 +32,8 @@ class Uniswap(Dex):
         '0xa478c2975ab1ea89e8196811f51a7b7ade33eb11': '0xa1484c3aa22a66c62b77e0ae78e15258bd0cb711',
     }
 
-    def __init__(self):
-        super().__init__('benesjan/uniswap-v2', Exchange.UNI_V2)
+    def __init__(self, subgraph_name='benesjan/uniswap-v2'):
+        super().__init__(subgraph_name, Exchange.UNI_V2)
         self.uni_price_first_block = 10876348
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
