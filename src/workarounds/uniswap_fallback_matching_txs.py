@@ -49,9 +49,6 @@ class UniNullUserFallbackMatchingTxs(UniMatchingTxs):
                 reserveUSD
                 totalSupply: liquidityTokenTotalSupply
                 liquidityTokenBalance
-                tx
-                gasUsed
-                gasPrice
             }
         }'''
         logging.info(f'{self.exchange}: Last update block: {last_block_update}')
