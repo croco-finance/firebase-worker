@@ -25,6 +25,7 @@ class Uniswap(Dex):
 
     # Key is pool id and value is the corresponding staking contract
     # Used for yield farming calculations
+    # The staking contracts were deployed at block 10875196
     POOLS_STAKING_MAP = {
         '0xbb2b8038a1640196fbe3e38816f3e67cba72d940': '0xca35e32e7926b96a9988f61d510e038108d8068e',
         '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc': '0x7fba4b8dc5e7616e59622806932dbea72537a56b',
@@ -85,12 +86,11 @@ class Uniswap(Dex):
             # Get snapshots of staked positions
             snaps += self._get_staked_snaps(params)
 
-            merged_snaps = self._merge_corresponding_snaps(snaps)
-            if merged_snaps:
-                self._populate_eth_prices(merged_snaps)
-                self._populate_uni_prices(merged_snaps)
+            if snaps:
+                self._populate_eth_prices(snaps)
+                self._populate_uni_prices(snaps)
 
-            yield merged_snaps
+            yield snaps
             first_block = last_block
             # Feedback regulating query limit in order to not get near the 1000 entities/request limit
             if len(snaps) > 300 and query_limit > 20:
@@ -165,12 +165,12 @@ class Uniswap(Dex):
         data = self.dex_graph.query(query, {})
         snaps = []
         for key, pool in data['data'].items():
-            new_snap = self._build_share_snap(staked_dict[key], pool)
+            new_snap = self._build_share_snap(staked_dict[key], pool, staked=True)
             snaps.append(new_snap)
 
         return snaps
 
-    def _build_share_snap(self, stake: Dict, pool: Dict) -> ShareSnap:
+    def _build_share_snap(self, stake: Dict, pool: Dict, staked=False) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
         tokens = []
         for i in range(2):
@@ -210,52 +210,9 @@ class Uniswap(Dex):
             stake['txHash'],
             Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
             None,
-            None
+            None,
+            staked
         )
-
-    def _merge_corresponding_snaps(self, raw_snaps) -> List[ShareSnap]:
-        user_snaps_dict = defaultdict(list)
-        for snap in raw_snaps:
-            user_snaps_dict[snap.user_addr].append(snap)
-
-        snaps = []
-        for user_snaps in user_snaps_dict.values():
-            snaps += self._merge_user_snaps(user_snaps)
-        return snaps
-
-    @staticmethod
-    def _merge_user_snaps(snaps: List[ShareSnap]) -> List[ShareSnap]:
-        # Every staked snap has the corresponding liquidity position snap
-        # (increase in staked LP balance always results in the equal decrease
-        # in the normal snap) - sum LP balances of snaps at the same block
-        # Group them by pool id
-        pool_dict: Dict[str, Dict[int, ShareSnap]] = {}
-        for snap in snaps:
-            block, pool_id = snap.block, snap.pool_id
-
-            if pool_id not in pool_dict:
-                pool_dict[pool_id] = {}
-
-            if block in pool_dict[pool_id]:
-                if pool_dict[pool_id][block].liquidity_token_balance == 0 \
-                        or snap.liquidity_token_balance == 0:
-                    # When 1 of the 2 snapshots in the same block have 0
-                    # balance it means that the snapshots were created because
-                    # user deposited all his LP tokens into the staking
-                    # contract. Such event is useless for UI and hence I can
-                    # delete the snapshots
-                    del pool_dict[pool_id][block]
-                else:
-                    pool_dict[pool_id][block].liquidity_token_balance \
-                        += snap.liquidity_token_balance
-            else:
-                pool_dict[pool_id][block] = snap
-
-        merged_snaps = []
-        for summed_snaps in pool_dict.values():
-            for snap in summed_snaps.values():
-                merged_snaps.append(snap)
-        return merged_snaps
 
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator

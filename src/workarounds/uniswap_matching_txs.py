@@ -62,12 +62,11 @@ class UniMatchingTxs(Uniswap):
             # Get snapshots of staked positions
             snaps += self._get_staked_snaps(params)
 
-            merged_snaps = self._merge_corresponding_snaps(snaps)
-            if merged_snaps:
-                self._populate_eth_prices(merged_snaps)
-                self._populate_uni_prices(merged_snaps)
+            if snaps:
+                self._populate_eth_prices(snaps)
+                self._populate_uni_prices(snaps)
 
-            yield merged_snaps
+            yield snaps
             first_block = last_block
             # Feedback regulating query limit in order to not get near the 1000 entities/request limit
             if tx_amount > 400 and query_limit > 20:

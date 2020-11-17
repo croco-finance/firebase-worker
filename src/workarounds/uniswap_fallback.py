@@ -66,9 +66,8 @@ class UniNullUserFallback(Uniswap):
             # Get snapshots of staked positions
         snaps += self._get_staked_snaps(params)
 
-        merged_snaps = self._merge_corresponding_snaps(snaps)
-        if merged_snaps:
-            self._populate_eth_prices(merged_snaps)
-            self._populate_uni_prices(merged_snaps)
+        if snaps:
+            self._populate_eth_prices(snaps)
+            self._populate_uni_prices(snaps)
 
-        return merged_snaps
+        return snaps
