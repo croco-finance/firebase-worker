@@ -93,7 +93,6 @@ class UniMatchingTxs(Uniswap):
             }
         }'''
         txs = self.tx_graph.query(query, params)['data']['transactions']
-        print(len(txs))
         indexed_txs = defaultdict(list)
         for tx in txs:
             indexed_txs[tx['from'] + tx['blockNumber']].append(tx)

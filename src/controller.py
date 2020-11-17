@@ -10,8 +10,9 @@ from src.shared.type_definitions import ShareSnap, YieldReward, Pool
 
 
 class Controller:
-    def __init__(self, instance: Dex):
+    def __init__(self, instance: Dex, snap_index=''):
         self.instance = instance
+        self.snap_index = snap_index
         self.exchange_name = str(instance.exchange.name)
         if not firebase_admin._apps:
             cred = credentials.Certificate('serviceAccountKey.json')
@@ -25,7 +26,7 @@ class Controller:
     def update_snaps(self, query_limit):
         logging.info('SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in self.instance.fetch_new_snaps(self.last_update['snaps'], query_limit):
+        for snaps in self.instance.fetch_new_snaps(self.last_update[f'snaps{self.snap_index}'], query_limit):
             if snaps:
                 assert len(snaps) < 900, f'Reached dangerous amount of snaps in a batch  {len(snaps)}' \
                                          '-> not all snaps might fit into the response for this reason' \
@@ -39,15 +40,15 @@ class Controller:
 
     def _upload_snaps(self, snaps: List[ShareSnap]):
         logging.info(f"Uploading {len(snaps)} snaps")
-        highest_block = self.last_update['snaps']
+        highest_block = self.last_update[f'snaps{self.snap_index}']
         for snap in snaps:
             snap_ref = self.root_ref.child(f'users/{snap.user_addr}/{self.exchange_name}'
                                            f'/snaps/{snap.pool_id}/{snap.id}')
             snap_ref.set(snap.to_serializable())
             if snap.block > highest_block:
                 highest_block = snap.block
-        self.last_update_ref.child('snaps').set(highest_block)
-        self.last_update['snaps'] = highest_block
+        self.last_update_ref.child(f'snaps{self.snap_index}').set(highest_block)
+        self.last_update[f'snaps{self.snap_index}'] = highest_block
         logging.info(f'Updated highest snap firebase block to {highest_block}')
 
     @staticmethod
