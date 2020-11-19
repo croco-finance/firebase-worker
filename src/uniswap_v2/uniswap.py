@@ -237,9 +237,9 @@ class Uniswap(Dex):
         return {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                 block, val in data['data'].items()}
 
-    def fetch_pools(self, max_objects_in_batch: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[Pool]]:
         query = '''{
-            pairs(first: $MAX_OBJECTS, skip: $SKIP, orderBy: reserveUSD, orderDirection: desc) {
+            pairs(first: $MAX_OBJECTS, skip: $SKIP, orderBy: reserveUSD, orderDirection: desc, where: {reserveUSD_gte: $MIN_LIQUIDITY}) {
                 id
                 reserveUSD
                 reserve0
@@ -264,6 +264,7 @@ class Uniswap(Dex):
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
+                '$MIN_LIQUIDITY': min_liquidity,
             }
             raw_pools = self.dex_graph.query(query, params)['data']['pairs']
             if not raw_pools:

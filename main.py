@@ -27,7 +27,7 @@ if __name__ == '__main__':
         try:
             controller.update_snaps(query_limit=100)
             controller.update_yields(max_objects_in_batch=100)
-            # controller.update_pools()
+            # controller.update_pools(max_objects_in_batch=100)
             logging.info(f'FINISHED SYNC')
             break
         except Exception as e:

@@ -85,9 +85,9 @@ class Controller:
         self.last_update['yields'] = highest_block
         logging.info(f'Updated highest yields firebase block to {highest_block}')
 
-    def update_pools(self, max_objects_in_batch):
+    def update_pools(self, max_objects_in_batch, min_liquidity=100000):
         logging.info('POOL UPDATE INITIATED')
-        for pools in self.instance.fetch_pools(max_objects_in_batch):
+        for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity):
             if pools:
                 self._upload_pools(pools)
 

@@ -119,9 +119,9 @@ class Balancer(Dex):
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
-    def fetch_pools(self, max_objects_in_batch: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[Pool]]:
         query = '''{
-            pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc) {
+            pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc, where: {liquidity_gte: $MIN_LIQUIDITY}) {
                 id
                 symbol
                 totalWeight
@@ -143,6 +143,7 @@ class Balancer(Dex):
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
+                '$MIN_LIQUIDITY': min_liquidity,
             }
             raw_pools = self.dex_graph.query(query, params)['data']['pools']
             if not raw_pools:
