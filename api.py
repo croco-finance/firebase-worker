@@ -1,18 +1,17 @@
 from flask import Flask
-from flask_cors import CORS
 
 from src.balancer.balancer import Balancer
 from src.controller import Controller
 from src.workarounds.uniswap_matching_txs import UniMatchingTxs
 
 app = Flask(__name__)
-CORS(app)
 
 
 @app.route('/update/<string:exchange>/<string:entity_type>/')
 @app.route('/update/<string:exchange>/<string:entity_type>/<int:min_liquidity>/')
 def update(exchange, entity_type, min_liquidity=None):
     if exchange == 'UNI_V2':
+        # TODO: switch to Uniswap() once the graph is synced
         controller = Controller(UniMatchingTxs(), snap_index=6)
         # controller = Controller(Uniswap())
     elif exchange == 'BALANCER':
@@ -23,7 +22,7 @@ def update(exchange, entity_type, min_liquidity=None):
         if entity_type == 'snaps':
             controller.update_snaps(query_limit=100)
         elif entity_type == 'pools':
-            if min_liquidity==None:
+            if min_liquidity is None:
                 return '{"success": false, "exception": "None min_liquidity URL parameter in update of pools."}'
             controller.update_pools(max_objects_in_batch=100, min_liquidity=min_liquidity)
         elif entity_type == 'yields':
