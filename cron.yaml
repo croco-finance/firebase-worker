@@ -1,0 +1,25 @@
+cron:
+  - description: "Balancer update all pools"
+    url: /update/BALANCER/pools/0/
+    schedule: every 24 hours
+  - description: "Uniswap update all pools"
+    url: /update/UNI_V2/pools/0/
+    schedule: every 24 hours
+  - description: "Balancer update snaps"
+    url: /update/BALANCER/snaps/
+    schedule: every 15 mins
+  - description: "Uniswap update snaps"
+    url: /update/UNI_V2/snaps/
+    schedule: every 15 mins
+  - description: "Balancer update yields"
+    url: /update/BALANCER/yields/
+    schedule: every 15 mins
+  - description: "Uniswap update yields"
+    url: /update/UNI_V2/yields/
+    schedule: every 15 mins
+  - description: "Balancer update pools over 100k"
+    url: /update/BALANCER/pools/100000/
+    schedule: every 15 mins
+  - description: "Uniswap update pools over 100k"
+    url: /update/UNI_V2/pools/100000/
+    schedule: every 15 mins
