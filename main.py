@@ -1,35 +1,40 @@
-import logging
-import time
+# [START gae_python38_app]
+from flask import Flask
 
 from src.balancer.balancer import Balancer
 from src.controller import Controller
+from src.workarounds.uniswap_matching_txs import UniMatchingTxs
+
+app = Flask(__name__)
+
+
+@app.route('/update/<string:exchange>/<string:entity_type>/')
+@app.route('/update/<string:exchange>/<string:entity_type>/<int:min_liquidity>/')
+def update(exchange, entity_type, min_liquidity=None):
+    if exchange == 'UNI_V2':
+        # TODO: switch to Uniswap() once the graph is synced
+        controller = Controller(UniMatchingTxs(), snap_index=6)
+        # controller = Controller(Uniswap())
+    elif exchange == 'BALANCER':
+        controller = Controller(Balancer())
+    else:
+        return '{"success": false, "exception": "Unknown exhchange type."}'
+    try:
+        if entity_type == 'snaps':
+            controller.update_snaps(query_limit=100)
+        elif entity_type == 'pools':
+            if min_liquidity is None:
+                return '{"success": false, "exception": "None min_liquidity URL parameter in update of pools."}'
+            controller.update_pools(max_objects_in_batch=100, min_liquidity=min_liquidity)
+        elif entity_type == 'yields':
+            controller.update_yields(max_objects_in_batch=100)
+        else:
+            return '{"success": false, "exception": "Unknown entity type."}'
+    except Exception as e:
+        return f'{"success": false, "exception": {e}}'
+    return '{"success": true}'
+
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='balancer.log',
-                        filemode='a',
-                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                        datefmt='%H:%M:%S',
-                        level=logging.INFO)
-
-    # Save the log output to console as well:
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logging.getLogger().addHandler(console)
-
-    controller = Controller(Balancer())
-    while True:
-        try:
-            controller.update_snaps(query_limit=100)
-            controller.update_yields(max_objects_in_batch=100)
-            controller.update_pools(max_objects_in_batch=100)
-            logging.info(f'FINISHED SYNC')
-            break
-        except Exception as e:
-            logging.error(f'CONTROL LOOP EXCEPTION OCCURRED: {e}')
-            time.sleep(150)
+    app.run(host="0.0.0.0", port=5000)
+# [END gae_python38_app]

@@ -1,3 +1,5 @@
 .idea
 /venv/
 /serviceAccountKey.json
+/logs/
+manual*
