@@ -63,9 +63,11 @@ class Uniswap(Dex):
                 reserveUSD
                 totalSupply: liquidityTokenTotalSupply
                 liquidityTokenBalance
-                tx
-                gasUsed
-                gasPrice
+                transaction {
+                    id
+                    gasUsed
+                    gasPrice
+                }
             }
         }'''
         first_block, highest_indexed_block = last_block_update, self.get_highest_indexed_block(self.dex_graph)
@@ -130,8 +132,8 @@ class Uniswap(Dex):
             tokens,
             snap['block'],
             snap['timestamp'],
-            snap['tx'],
-            Decimal(snap['gasUsed']) * Decimal(snap['gasPrice']) * Decimal('1E-18'),
+            snap['transaction']['id'],
+            Decimal(snap['transaction']['gasUsed']) * Decimal(snap['transaction']['gasPrice']) * Decimal('1E-18'),
             eth_price=None,
             yield_token_price=None
         )
