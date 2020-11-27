@@ -4,7 +4,7 @@ from typing import List, Dict, Iterable, Callable
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
-from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _uni_reserves_query_generator
+from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _yield_reserves_query_generator
 
 
 class Uniswap(Dex):
@@ -22,19 +22,15 @@ class Uniswap(Dex):
 
     PRICE_DISCOVERY_START_TIMESTAMP = 1589747086
 
-    # Key is pool id and value is the corresponding staking contract
-    # Used for yield farming calculations
-    # The staking contracts were deployed at block 10875196
-    POOLS_STAKING_MAP = {
-        '0xbb2b8038a1640196fbe3e38816f3e67cba72d940': '0xca35e32e7926b96a9988f61d510e038108d8068e',
-        '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc': '0x7fba4b8dc5e7616e59622806932dbea72537a56b',
-        '0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852': '0x6c3e4cb2e96b01f4b866965a91ed4437839a121a',
-        '0xa478c2975ab1ea89e8196811f51a7b7ade33eb11': '0xa1484c3aa22a66c62b77e0ae78e15258bd0cb711',
-    }
-
-    def __init__(self, subgraph_name='benesjan/uniswap-v2'):
-        super().__init__(subgraph_name, Exchange.UNI_V2)
-        self.uni_price_first_block = 10876348
+    def __init__(self, sushi=False):
+        if sushi:
+            super().__init__('benesjan/sushi-swap', Exchange.SUSHI)
+            self.YIELD_PRICE_PAIR = '0x795065dcc9f64b5614c407a6efdc400da6221fb0'
+            self.YIELD_PRICE_FIRST_BLOCK = 10829340
+        else:
+            super().__init__('benesjan/uniswap-v2', Exchange.UNI_V2)
+            self.YIELD_PRICE_PAIR = '0xd3d2e2692501a5c9ca623199d38826e513033a17'
+            self.YIELD_PRICE_FIRST_BLOCK = 10876348
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         query = '''{
@@ -89,7 +85,7 @@ class Uniswap(Dex):
 
             if snaps:
                 self._populate_eth_prices(snaps)
-                self._populate_uni_prices(snaps)
+                self._populate_yield_prices(snaps)
 
             yield snaps
             first_block = last_block
@@ -218,22 +214,29 @@ class Uniswap(Dex):
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
-    def _populate_uni_prices(self, snaps: List[ShareSnap]):
-        relevant_snaps = [snap for snap in snaps if
-                          snap.block >= self.uni_price_first_block and snap.pool_id in self.POOLS_STAKING_MAP.keys()]
+    def _populate_yield_prices(self, snaps: List[ShareSnap]):
+        relevant_snaps = [snap for snap in snaps if snap.block >= self.YIELD_PRICE_FIRST_BLOCK]
+        if self.exchange is Exchange.UNI_V2:
+            REWARDED_POOLS = {
+                '0xbb2b8038a1640196fbe3e38816f3e67cba72d940',
+                '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
+                '0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852',
+                '0xa478c2975ab1ea89e8196811f51a7b7ade33eb11',
+            }
+            relevant_snaps = [snap for snap in snaps if snap.pool_id in REWARDED_POOLS]
         if not relevant_snaps:
             return
         blocks = {snap.block for snap in relevant_snaps}
-        bal_prices = self._get_yield_token_prices(blocks)
+        prices = self._get_yield_token_prices(blocks)
         for snap in relevant_snaps:
-            snap.yield_token_price = bal_prices[snap.block]
+            snap.yield_token_price = prices[snap.block]
 
     def _get_yield_token_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
         """
         Fetch eth prices in specific block times.
         (used to denominate the returns in ETH)
         """
-        query = ''.join(_uni_reserves_query_generator(blocks))
+        query = ''.join(_yield_reserves_query_generator(blocks, self.YIELD_PRICE_PAIR))
         data = self.dex_graph.query(query, {})
         return {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                 block, val in data['data'].items()}

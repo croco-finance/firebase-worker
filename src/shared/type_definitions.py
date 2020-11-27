@@ -40,6 +40,7 @@ class PoolToken(object):
 class Exchange(Enum):
     UNI_V2 = 0
     BALANCER = 1
+    SUSHI = 2
 
 
 @attr.s(auto_attribs=True, slots=True)

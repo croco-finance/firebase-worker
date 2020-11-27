@@ -68,6 +68,6 @@ class UniNullUserFallback(Uniswap):
 
         if snaps:
             self._populate_eth_prices(snaps)
-            self._populate_uni_prices(snaps)
+            self._populate_yield_prices(snaps)
 
         return snaps
