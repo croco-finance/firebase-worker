@@ -11,7 +11,7 @@ from src.uniswap_v2.uniswap import Uniswap
 class UniMatchingTxs(Uniswap):
 
     def __init__(self):
-        super().__init__('uniswap/uniswap-v2')
+        super().__init__(dex_subgraph='uniswap/uniswap-v2')
         self.tx_graph = SubgraphReader('benesjan/uni-v2-lp-txs')
         self.uni_price_first_block = 10876348
 

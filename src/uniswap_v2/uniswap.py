@@ -22,13 +22,13 @@ class Uniswap(Dex):
 
     PRICE_DISCOVERY_START_TIMESTAMP = 1589747086
 
-    def __init__(self, sushi=False):
+    def __init__(self, sushi=False, dex_subgraph='benesjan/uniswap-v2'):
         if sushi:
             super().__init__('benesjan/sushi-swap', Exchange.SUSHI)
             self.YIELD_PRICE_PAIR = '0x795065dcc9f64b5614c407a6efdc400da6221fb0'
             self.YIELD_PRICE_FIRST_BLOCK = 10829340
         else:
-            super().__init__('benesjan/uniswap-v2', Exchange.UNI_V2)
+            super().__init__(dex_subgraph, Exchange.UNI_V2)
             self.YIELD_PRICE_PAIR = '0xd3d2e2692501a5c9ca623199d38826e513033a17'
             self.YIELD_PRICE_FIRST_BLOCK = 10876348
 
