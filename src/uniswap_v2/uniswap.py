@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from typing import List, Dict, Iterable, Callable
+from typing import List, Dict, Iterable, Callable, Tuple
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
@@ -133,19 +133,21 @@ class Uniswap(Dex):
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
-            snaps = self._get_staked_snaps(params)
-            if not snaps:
+            snaps, num_snaps = self._get_staked_snaps_and_num(params)
+            skip += max_objects_in_batch
+            if not num_snaps:
                 break
+            elif len(snaps) == 0:
+                continue
             self._populate_eth_prices(snaps)
             self._populate_yield_prices(snaps)
 
             yield snaps
-            skip += max_objects_in_batch
 
-    def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
+    def _get_staked_snaps_and_num(self, params: Dict) -> Tuple[List[ShareSnap], int]:
         query = '''
         {
-            stakePositionSnapshots(first: 1000, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $MIN_BLOCK, blockNumber_lt: $MAX_BLOCK, exchange: "UNI_V2"}) {
+            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK}) {
                 id
                 user
                 pool
@@ -163,17 +165,20 @@ class Uniswap(Dex):
         staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
 
         if not staked:
-            return []
+            return [], 0
 
         # 2. get the pool shares at the time of those snapshots
         query = ''.join(_staked_query_generator(staked))
         data = self.dex_graph.query(query, {})
         snaps = []
         for key, pool in data['data'].items():
+            if pool is None and self.exchange is Exchange.SUSHI:
+                logging.info(f'SKIPPING pre-migration snap, key: {key}')
+                continue
             new_snap = self._build_share_snap(staked_dict[key], pool, staked=True)
             snaps.append(new_snap)
 
-        return snaps
+        return snaps, len(data['data'])
 
     def _build_share_snap(self, stake: Dict, pool: Dict, staked=False) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
@@ -192,7 +197,7 @@ class Uniswap(Dex):
                 # t1Relative = r1/r0*t0Relative
                 # ==> t0Dollars = reserveUSD/(2*r0)
                 # ==> t1Dollars = reserveUSD/(2*r1)
-                price_usd = reserves_usd / (2 * res)
+                price_usd = 0 if res == 0 else reserves_usd / (2 * res)
 
             token_type = CurrencyField(symbol=tok['symbol'],
                                        name=tok['name'],

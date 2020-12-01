@@ -61,11 +61,7 @@ class UniNullUserFallbackMatchingTxs(UniMatchingTxs):
             except NonExistentUserException:
                 logging.error(f'NonExistentUserException - skipping snap with id: {snap_id}')
 
-            # Get snapshots of staked positions
-        snaps += self._get_staked_snaps(params)
-
         if snaps:
             self._populate_eth_prices(snaps)
-            self._populate_yield_prices(snaps)
 
         return snaps

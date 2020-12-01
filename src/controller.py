@@ -45,9 +45,9 @@ class Controller:
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                                f'prev_highest: {prev_highest}, lowest: {lowest}'
                 prev_lowest, prev_highest = lowest, highest
-                self._upload_snaps(snaps)
+                self._upload_snaps(snaps, staked=True)
 
-    def _upload_snaps(self, snaps: List[ShareSnap]):
+    def _upload_snaps(self, snaps: List[ShareSnap], staked=False):
         logging.info(f"Uploading {len(snaps)} snaps")
         highest_block = self.last_update[f'snaps{self.snap_index}']
         for snap in snaps:
@@ -56,8 +56,9 @@ class Controller:
             snap_ref.set(snap.to_serializable())
             if snap.block > highest_block:
                 highest_block = snap.block
-        self.last_update_ref.child(f'snaps{self.snap_index}').set(highest_block)
-        self.last_update[f'snaps{self.snap_index}'] = highest_block
+        snapPath = 'stakedSnaps' if staked else f'snaps{self.snap_index}'
+        self.last_update_ref.child(snapPath).set(highest_block)
+        self.last_update[snapPath] = highest_block
         logging.info(f'Updated highest snap firebase block to {highest_block}')
 
     @staticmethod
