@@ -19,12 +19,21 @@ class Dex(ABC):
         self.rewards_graph = SubgraphReader('benesjan/dex-rewards-subgraph')
 
     @abstractmethod
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         """
         Returns snapshots of user pool shares. A snapshot is created when
         there is change in the user's position.
         """
         raise NotImplementedError()
+
+    @abstractmethod
+    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
+        """
+        Returns snapshots of user pool shares. A snapshot is created when
+        there is change in the user's position.
+        """
+        raise NotImplementedError()
+
 
     def _populate_eth_prices(self, snaps: List[ShareSnap]):
         blocks = {snap.block for snap in snaps}

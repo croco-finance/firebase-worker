@@ -23,14 +23,23 @@ class Controller:
         self.last_update_ref = self.root_ref.child('lastUpdate').child(self.exchange_name)
         self.last_update = self.last_update_ref.get()
 
-    def update_snaps(self, query_limit):
+    def update_snaps(self, max_objects_in_batch):
         logging.info('SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in self.instance.fetch_new_snaps(self.last_update[f'snaps{self.snap_index}'], query_limit):
+        for snaps in self.instance.fetch_new_snaps(self.last_update[f'snaps{self.snap_index}'], max_objects_in_batch):
             if snaps:
-                assert len(snaps) < 900, f'Reached dangerous amount of snaps in a batch  {len(snaps)}' \
-                                         '-> not all snaps might fit into the response for this reason' \
-                                         '-> DECREASE QUERY LIMIT!'
+                lowest, highest = self._get_lowest_highest_block(snaps)
+                logging.info(f'Lowest block: {lowest}, highest block: {highest}')
+                assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
+                                               f'prev_highest: {prev_highest}, lowest: {lowest}'
+                prev_lowest, prev_highest = lowest, highest
+                self._upload_snaps(snaps)
+
+    def update_staked_snaps(self, max_objects_in_batch):
+        logging.info('STAKED SNAP UPDATE INITIATED')
+        prev_lowest, prev_highest = 1000000000, 0
+        for snaps in self.instance.fetch_new_staked_snaps(self.last_update['stakedSnaps'], max_objects_in_batch):
+            if snaps:
                 lowest, highest = self._get_lowest_highest_block(snaps)
                 logging.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \

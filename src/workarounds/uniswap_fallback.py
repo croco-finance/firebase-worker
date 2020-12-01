@@ -11,15 +11,15 @@ class UniNullUserFallback(Uniswap):
     def __init__(self):
         super().__init__()
 
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> List[ShareSnap]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> List[ShareSnap]:
         id_query = '''{
-            snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
+            snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK}) {
                 id
             }
         }'''
         params = {
-            '$MIN_BLOCK': last_block_update,
-            '$MAX_BLOCK': last_block_update + query_limit,
+            '$MAX_OBJECTS': max_objects_in_batch,
+            '$BLOCK': last_block_update,
         }
         raw_snap_ids = self.dex_graph.query(id_query, params)['data']['snaps']
 
@@ -63,11 +63,7 @@ class UniNullUserFallback(Uniswap):
             except NonExistentUserException:
                 logging.error(f'NonExistentUserException - skipping snap with id: {snap_id}')
 
-            # Get snapshots of staked positions
-        snaps += self._get_staked_snaps(params)
-
         if snaps:
             self._populate_eth_prices(snaps)
-            self._populate_yield_prices(snaps)
 
         return snaps

@@ -15,9 +15,9 @@ class UniMatchingTxs(Uniswap):
         self.tx_graph = SubgraphReader('benesjan/uni-v2-lp-txs')
         self.uni_price_first_block = 10876348
 
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         query = '''{
-            snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
+            snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK}) {
                 id
                 timestamp
                 block
@@ -44,37 +44,26 @@ class UniMatchingTxs(Uniswap):
                 liquidityTokenBalance
             }
         }'''
-        first_block, highest_indexed_block = last_block_update, self.get_highest_indexed_block(self.dex_graph)
+        highest_indexed_block = self.get_highest_indexed_block(self.dex_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
-        while first_block < highest_indexed_block:
-            last_block = first_block + query_limit
-            if last_block > highest_indexed_block:
-                last_block = highest_indexed_block
+        skip = 0
+        while True:
             params = {
-                '$MIN_BLOCK': first_block,
-                '$MAX_BLOCK': last_block,
+                '$MAX_OBJECTS': max_objects_in_batch,
+                '$SKIP': skip,
+                '$BLOCK': last_block_update,
             }
             txs, tx_amount = self._get_txs(params)
             raw_snaps = self.dex_graph.query(query, params)['data']['snaps']
+            if not raw_snaps:
+                break
             snaps = [self._process_snap(snap, txs) for snap in raw_snaps]
 
-            # Get snapshots of staked positions
-            snaps += self._get_staked_snaps(params)
-
-            if snaps:
-                self._populate_eth_prices(snaps)
-                self._populate_yield_prices(snaps)
+            self._populate_eth_prices(snaps)
 
             yield snaps
-            first_block = last_block
-            # Feedback regulating query limit in order to not get near the 1000 entities/request limit
-            if tx_amount > 400 and query_limit > 20:
-                query_limit -= 10
-                logging.info(f'Decreased query limit to: {query_limit}')
-            elif tx_amount < 100:
-                query_limit += 10
-                logging.info(f'Increased query limit to: {query_limit}')
+            skip += max_objects_in_batch
 
     def _get_txs(self, params: Dict) -> Tuple[Dict[str, List[Dict]], int]:
         # When from is 0 address, it's a mint

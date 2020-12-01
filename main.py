@@ -21,7 +21,7 @@ def update(exchange, entity_type, min_liquidity=None):
         return '{"success": false, "exception": "Unknown exhchange type."}'
     try:
         if entity_type == 'snaps':
-            controller.update_snaps(query_limit=100)
+            controller.update_snaps(max_objects_in_batch=100)
         elif entity_type == 'pools':
             if min_liquidity is None:
                 return '{"success": false, "exception": "None min_liquidity URL parameter in update of pools."}'

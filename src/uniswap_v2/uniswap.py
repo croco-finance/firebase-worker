@@ -12,14 +12,14 @@ class Uniswap(Dex):
     A handler for Uniswap v2 DEX.
     """
 
-    # Used to override prices at the beginning of Uni v2
-    # - taken from uniswap.info source code
     PRICE_OVERRIDES = {
         '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': Decimal('1'),  # USDC
         '0x6b175474e89094c44da98b954eedeac495271d0f': Decimal('1'),  # DAI
         '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': Decimal('203')  # WETH
     }
 
+    # Used to override prices at the beginning of Uni v2
+    # - taken from uniswap.info source code
     PRICE_DISCOVERY_START_TIMESTAMP = 1589747086
 
     def __init__(self, sushi=False, dex_subgraph='benesjan/uniswap-v2'):
@@ -32,9 +32,9 @@ class Uniswap(Dex):
             self.YIELD_PRICE_PAIR = '0xd3d2e2692501a5c9ca623199d38826e513033a17'
             self.YIELD_PRICE_FIRST_BLOCK = 10876348
 
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         query = '''{
-            snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {
+            snaps: liquidityPositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK}) {
                 id
                 timestamp
                 block
@@ -66,36 +66,24 @@ class Uniswap(Dex):
                 }
             }
         }'''
-        first_block, highest_indexed_block = last_block_update, self.get_highest_indexed_block(self.dex_graph)
+        highest_indexed_block = self.get_highest_indexed_block(self.dex_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
-        while first_block < highest_indexed_block:
-            last_block = first_block + query_limit
-            if last_block > highest_indexed_block:
-                last_block = highest_indexed_block
+        skip = 0
+        while True:
             params = {
-                '$MIN_BLOCK': first_block,
-                '$MAX_BLOCK': last_block,
+                '$MAX_OBJECTS': max_objects_in_batch,
+                '$SKIP': skip,
+                '$BLOCK': last_block_update,
             }
             raw_snaps = self.dex_graph.query(query, params)['data']['snaps']
+            if not raw_snaps:
+                break
             snaps = [self._process_snap(snap) for snap in raw_snaps]
-
-            # Get snapshots of staked positions
-            snaps += self._get_staked_snaps(params)
-
-            if snaps:
-                self._populate_eth_prices(snaps)
-                self._populate_yield_prices(snaps)
+            self._populate_eth_prices(snaps)
 
             yield snaps
-            first_block = last_block
-            # Feedback regulating query limit in order to not get near the 1000 entities/request limit
-            if len(snaps) > 300 and query_limit > 20:
-                query_limit -= 10
-                logging.info(f'Decreased query limit to: {query_limit}')
-            elif len(snaps) < 100:
-                query_limit += 10
-                logging.info(f'Increased query limit to: {query_limit}')
+            skip += max_objects_in_batch
 
     def _process_snap(self, snap: Dict) -> ShareSnap:
         reserves_usd = Decimal(snap['reserveUSD'])
@@ -133,6 +121,26 @@ class Uniswap(Dex):
             eth_price=None,
             yield_token_price=None
         )
+
+    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
+        highest_indexed_block = self.get_highest_indexed_block(self.rewards_graph)
+        logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
+                     f'highest indexed block: {highest_indexed_block}')
+        skip = 0
+        while True:
+            params = {
+                '$MAX_OBJECTS': max_objects_in_batch,
+                '$SKIP': skip,
+                '$BLOCK': last_block_update,
+            }
+            snaps = self._get_staked_snaps(params)
+            if not snaps:
+                break
+            self._populate_eth_prices(snaps)
+            self._populate_yield_prices(snaps)
+
+            yield snaps
+            skip += max_objects_in_batch
 
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
@@ -216,14 +224,6 @@ class Uniswap(Dex):
 
     def _populate_yield_prices(self, snaps: List[ShareSnap]):
         relevant_snaps = [snap for snap in snaps if snap.block >= self.YIELD_PRICE_FIRST_BLOCK]
-        if self.exchange is Exchange.UNI_V2:
-            REWARDED_POOLS = {
-                '0xbb2b8038a1640196fbe3e38816f3e67cba72d940',
-                '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
-                '0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852',
-                '0xa478c2975ab1ea89e8196811f51a7b7ade33eb11',
-            }
-            relevant_snaps = [snap for snap in snaps if snap.pool_id in REWARDED_POOLS]
         if not relevant_snaps:
             return
         blocks = {snap.block for snap in relevant_snaps}

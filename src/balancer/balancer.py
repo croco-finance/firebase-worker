@@ -12,16 +12,19 @@ class Balancer(Dex):
     A handler for Balancer DEX.
     """
 
+    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
+        raise NotImplementedError
+
     def __init__(self):
         super().__init__('balancer-labs/balancer', Exchange.BALANCER)
         # rewards start at 10322999 but at that point the prices are not yet in the graph
         self.bal_price_first_block = 10323092
 
-    def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         skip = 0
         while True:
             params = {
-                '$MAX_OBJECTS': query_limit,
+                '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
@@ -37,7 +40,7 @@ class Balancer(Dex):
                 self._populate_bal_prices(snaps)
 
             yield snaps
-            skip += query_limit
+            skip += max_objects_in_batch
 
     def _get_txs(self, params: Dict) -> List[Dict]:
         query = '''
