@@ -1,13 +1,12 @@
 import logging
 
 from src.controller import Controller
-from src.workarounds.uniswap_fallback import UniNullUserFallback
 
 
 class ControllerUniNullUserFallback(Controller):
 
-    def __init__(self, class_=UniNullUserFallback, snap_index=''):
-        super().__init__(class_(), snap_index)
+    def __init__(self, instance_, snap_index=''):
+        super().__init__(instance_, snap_index)
 
     def update_snaps(self, max_objects_in_batch):
         logging.info('FALL BACK SNAP UPDATE INITIATED')

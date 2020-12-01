@@ -8,8 +8,8 @@ from src.uniswap_v2.uniswap import Uniswap
 
 class UniNullUserFallback(Uniswap):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, sushi=False):
+        super().__init__(sushi=sushi)
 
     def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> List[ShareSnap]:
         id_query = '''{
@@ -49,9 +49,11 @@ class UniNullUserFallback(Uniswap):
                 reserveUSD
                 totalSupply: liquidityTokenTotalSupply
                 liquidityTokenBalance
-                tx
-                gasUsed
-                gasPrice
+                transaction {
+                    id
+                    gasUsed
+                    gasPrice
+                }
             }
         }'''
         logging.info(f'{self.exchange}: Last update block: {last_block_update}')
