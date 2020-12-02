@@ -22,15 +22,17 @@ class Uniswap(Dex):
     # - taken from uniswap.info source code
     PRICE_DISCOVERY_START_TIMESTAMP = 1589747086
 
-    def __init__(self, sushi=False, dex_subgraph='benesjan/uniswap-v2'):
-        if sushi:
-            super().__init__('benesjan/sushi-swap', Exchange.SUSHI)
-            self.YIELD_PRICE_PAIR = '0x795065dcc9f64b5614c407a6efdc400da6221fb0'
-            self.YIELD_PRICE_FIRST_BLOCK = 10829340
-        else:
-            super().__init__(dex_subgraph, Exchange.UNI_V2)
-            self.YIELD_PRICE_PAIR = '0xd3d2e2692501a5c9ca623199d38826e513033a17'
-            self.YIELD_PRICE_FIRST_BLOCK = 10876348
+    def __init__(
+            self,
+            exchange=Exchange.UNI_V2,
+            dex_subgraph='uniswap/uniswap-v2',
+            # dex_subgraph='benesjan/uniswap-v2',
+            yield_price_pair='0xd3d2e2692501a5c9ca623199d38826e513033a17',
+            yield_price_first_block=10876348
+    ):
+        super().__init__(dex_subgraph, exchange)
+        self.yield_price_pair = yield_price_pair
+        self.yield_price_first_block = yield_price_first_block
 
     def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         query = '''{
@@ -126,28 +128,29 @@ class Uniswap(Dex):
         highest_indexed_block = self.get_highest_indexed_block(self.rewards_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
-        skip = 0
+        skip, snaps = 0, range(max_objects_in_batch)
         while True:
+            assert len(snaps) == max_objects_in_batch, 'Incorrect number of snaps in a batch:' \
+                                                       f'{len(snaps)} instead of {max_objects_in_batch}'
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
+                '$EXCHANGE': self.exchange.name,
             }
-            snaps, num_snaps = self._get_staked_snaps_and_num(params)
+            snaps = self._get_staked_snaps(params)
             skip += max_objects_in_batch
-            if not num_snaps:
+            if len(snaps) == 0:
                 break
-            elif len(snaps) == 0:
-                continue
             self._populate_eth_prices(snaps)
             self._populate_yield_prices(snaps)
 
             yield snaps
 
-    def _get_staked_snaps_and_num(self, params: Dict) -> Tuple[List[ShareSnap], int]:
+    def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
         {
-            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK}) {
+            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, , exchange: "$EXCHANGE"}) {
                 id
                 user
                 pool
@@ -162,23 +165,21 @@ class Uniswap(Dex):
         '''
         # 1. Get the positions and snapshots
         staked = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
-        staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}': stake for stake in staked}
+        staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}-{stake["id"]}': stake for stake in staked}
 
         if not staked:
-            return [], 0
+            return []
 
         # 2. get the pool shares at the time of those snapshots
         query = ''.join(_staked_query_generator(staked))
         data = self.dex_graph.query(query, {})
+        # buikd the snap list and return
         snaps = []
-        for key, pool in data['data'].items():
-            if pool is None and self.exchange is Exchange.SUSHI:
-                logging.info(f'SKIPPING pre-migration snap, key: {key}')
-                continue
-            new_snap = self._build_share_snap(staked_dict[key], pool, staked=True)
-            snaps.append(new_snap)
-
-        return snaps, len(data['data'])
+        for key, staked in staked_dict.items():
+            pool_key = key.split("-")[0]
+            pool = data['data'][pool_key]
+            snaps.append(self._build_share_snap(staked, pool, staked=True))
+        return snaps
 
     def _build_share_snap(self, stake: Dict, pool: Dict, staked=False) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
@@ -228,7 +229,7 @@ class Uniswap(Dex):
         return _eth_prices_query_generator
 
     def _populate_yield_prices(self, snaps: List[ShareSnap]):
-        relevant_snaps = [snap for snap in snaps if snap.block >= self.YIELD_PRICE_FIRST_BLOCK]
+        relevant_snaps = [snap for snap in snaps if snap.block >= self.yield_price_first_block]
         if not relevant_snaps:
             return
         blocks = {snap.block for snap in relevant_snaps}
@@ -241,7 +242,7 @@ class Uniswap(Dex):
         Fetch eth prices in specific block times.
         (used to denominate the returns in ETH)
         """
-        query = ''.join(_yield_reserves_query_generator(blocks, self.YIELD_PRICE_PAIR))
+        query = ''.join(_yield_reserves_query_generator(blocks, self.yield_price_pair))
         data = self.dex_graph.query(query, {})
         return {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                 block, val in data['data'].items()}
