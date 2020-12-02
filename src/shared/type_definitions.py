@@ -42,6 +42,11 @@ class Exchange(Enum):
     BALANCER = 1
     SUSHI = 2
 
+class StakingService(Enum):
+    UNI_V2 = 0
+    INDEX = 1
+    SUSHI = 2
+
 
 @attr.s(auto_attribs=True, slots=True)
 class Pool(object):
@@ -81,7 +86,7 @@ class ShareSnap(object):
     eth_price: Optional[Decimal]
     # Set for snaps which were at the time eligible for yield reward if the price was available in the graph
     yield_token_price: Optional[Decimal]
-    staked: bool = attr.ib(default=False)
+    staking_service: Optional[StakingService] = attr.ib(default=None)
 
     def to_serializable(self) -> Dict:
         serializable = {
@@ -97,8 +102,8 @@ class ShareSnap(object):
         }
         if self.yield_token_price:
             serializable['yieldTokenPrice'] = str(self.yield_token_price)
-        if self.staked:
-            serializable['staked'] = self.staked
+        if self.staking_service:
+            serializable['stakingService'] = self.staking_service
         return serializable
 
 

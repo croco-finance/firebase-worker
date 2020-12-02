@@ -152,6 +152,7 @@ class Uniswap(Dex):
         {
             stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, , exchange: "$EXCHANGE"}) {
                 id
+                stakingService
                 user
                 pool
                 liquidityTokenBalance
@@ -178,10 +179,10 @@ class Uniswap(Dex):
         for key, staked in staked_dict.items():
             pool_key = key.split("-")[0]
             pool = data['data'][pool_key]
-            snaps.append(self._build_share_snap(staked, pool, staked=True))
+            snaps.append(self._build_share_snap(staked, pool))
         return snaps
 
-    def _build_share_snap(self, stake: Dict, pool: Dict, staked=False) -> ShareSnap:
+    def _build_share_snap(self, stake: Dict, pool: Dict) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
         tokens = []
         for i in range(2):
@@ -208,6 +209,7 @@ class Uniswap(Dex):
                                     Decimal('0.5'),
                                     res,
                                     price_usd))
+        staking_service = stake['stakingService'] if 'stakingService' in stake else None
         return ShareSnap(
             stake['id'],
             self.exchange,
@@ -222,7 +224,7 @@ class Uniswap(Dex):
             Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
             None,
             None,
-            staked
+            staking_service
         )
 
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
