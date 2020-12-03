@@ -44,8 +44,9 @@ class Exchange(Enum):
 
 class StakingService(Enum):
     UNI_V2 = 0
-    INDEX = 1
+    BALANCER = 1
     SUSHI = 2
+    INDEX = 3
 
 
 @attr.s(auto_attribs=True, slots=True)
@@ -117,6 +118,7 @@ class YieldReward(object):
     block: int
     timestamp: int
     tx_hash: str
+    staking_service: StakingService
 
     def to_serializable(self) -> Dict:
         serializable = {
@@ -125,7 +127,19 @@ class YieldReward(object):
             'block': self.block,
             'timestamp': self.timestamp,
             'txHash': self.tx_hash,
+            'stakingService': self.staking_service
         }
         if self.pool_id:
+            # Not present in Balancer
             serializable['poolId'] = str(self.pool_id)
         return serializable
+
+
+@attr.s(auto_attribs=True, slots=True)
+class YieldPool(object):
+    """
+    An object which contains information about pair, from which the price data can be fetched
+    """
+    pool_id: str  # Address of the pool, from which the price will be obtained
+    exchange: Exchange
+    firs_block: int # First block, in which the price is available

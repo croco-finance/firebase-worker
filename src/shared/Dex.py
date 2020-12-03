@@ -77,6 +77,7 @@ class Dex(ABC):
         query = '''{
             rewards(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, exchange: "$EXCHANGE"}) {
                 id
+                stakingService
                 exchange
                 pool
                 amount
@@ -125,5 +126,6 @@ class Dex(ABC):
             Decimal(reward['amount']),
             int(reward['blockNumber']),
             int(reward['blockTimestamp']),
-            reward['transaction']
+            reward['transaction'],
+            reward['stakingService']
         )

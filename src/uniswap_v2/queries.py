@@ -75,8 +75,8 @@ def _yield_reserves_query_generator(block_heights: Iterable[int], pair_id) -> It
     """
     Used to compute the value of UNI.
 
-    SUSHI/WETH pair: 0x795065dcc9f64b5614c407a6efdc400da6221fb0
-    UNI/WETH pair: 0xd3d2e2692501a5c9ca623199d38826e513033a17
+    SUSHI/WETH pair: 0x795065dcc9f64b5614c407a6efdc400da6221fb0, pair deployed in block 10829340
+    UNI/WETH pair: 0xd3d2e2692501a5c9ca623199d38826e513033a17, pair deployed in block 10876348
 
     Example return value:
     {
