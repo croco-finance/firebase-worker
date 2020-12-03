@@ -1,10 +1,13 @@
 import logging
+from collections import defaultdict
 from decimal import Decimal
 from typing import List, Dict, Iterable, Callable, Tuple
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool
+from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool, YieldPool
+from src.subgraph import SubgraphReader
 from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _yield_reserves_query_generator
+from src.uniswap_v2.yield_pools import yield_pools
 
 
 class Uniswap(Dex):
@@ -21,18 +24,6 @@ class Uniswap(Dex):
     # Used to override prices at the beginning of Uni v2
     # - taken from uniswap.info source code
     PRICE_DISCOVERY_START_TIMESTAMP = 1589747086
-
-    def __init__(
-            self,
-            exchange=Exchange.UNI_V2,
-            dex_subgraph='uniswap/uniswap-v2',
-            # dex_subgraph='benesjan/uniswap-v2',
-            yield_price_pair='0xd3d2e2692501a5c9ca623199d38826e513033a17',
-            yield_price_first_block=10876348
-    ):
-        super().__init__(dex_subgraph, exchange)
-        self.yield_price_pair = yield_price_pair
-        self.yield_price_first_block = yield_price_first_block
 
     def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
         query = '''{
@@ -231,23 +222,23 @@ class Uniswap(Dex):
         return _eth_prices_query_generator
 
     def _populate_yield_prices(self, snaps: List[ShareSnap]):
-        relevant_snaps = [snap for snap in snaps if snap.block >= self.yield_price_first_block]
-        if not relevant_snaps:
+        yield_grouped_block_filtered_snaps = defaultdict(list)
+        for snap in snaps:
+            yield_pool: YieldPool = yield_pools[snap.staking_service]
+            if snap.block >= yield_pool.firs_block:
+                yield_grouped_block_filtered_snaps[snap.staking_service].append(snap)
+        if not yield_grouped_block_filtered_snaps:
             return
-        blocks = {snap.block for snap in relevant_snaps}
-        prices = self._get_yield_token_prices(blocks)
-        for snap in relevant_snaps:
-            snap.yield_token_price = prices[snap.block]
 
-    def _get_yield_token_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
-        """
-        Fetch eth prices in specific block times.
-        (used to denominate the returns in ETH)
-        """
-        query = ''.join(_yield_reserves_query_generator(blocks, self.yield_price_pair))
-        data = self.dex_graph.query(query, {})
-        return {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
-                block, val in data['data'].items()}
+        for staking_service_name, snap_list in yield_grouped_block_filtered_snaps.items():
+            blocks = {snap.block for snap in snap_list}
+            yield_pool: YieldPool = yield_pools[staking_service_name]
+            query = ''.join(_yield_reserves_query_generator(blocks, yield_pools[staking_service_name]))
+            data = SubgraphReader(yield_pool.subgraph_name).query(query)
+            prices = {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
+                      block, val in data['data'].items()}
+            for snap in snap_list:
+                snap.yield_token_price = prices[snap.block]
 
     def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[Pool]]:
         query = '''{
