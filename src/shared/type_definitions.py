@@ -57,10 +57,10 @@ class Pool(object):
     tokens: List[PoolToken]
     block: int
     eth_price: Decimal
-    yield_token_price: Decimal
+    relevant_yield_token_prices: Optional[Dict[StakingService, Decimal]] = attr.ib(default=None)
 
     def to_serializable(self) -> Dict:
-        return {
+        serializable = {
             'exchange': str(self.exchange.name),
             'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
             'tokens': [token.to_serializable() for token in self.tokens],
@@ -68,6 +68,10 @@ class Pool(object):
             'ethPrice': str(self.eth_price),
             'yieldTokenPrice': str(self.yield_token_price)
         }
+        if self.relevant_yield_token_prices:
+            serializable['relevantYieldTokenPrices'] = {str(stakingService.name): str(price) for stakingService, price
+                                                        in self.relevant_yield_token_prices.items()}
+        return serializable
 
 
 @attr.s(auto_attribs=True, slots=True)

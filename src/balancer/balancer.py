@@ -4,7 +4,7 @@ from typing import List, Dict, Iterable, Callable
 
 from src.balancer.queries import share_query_generator, _eth_prices_query_generator, _bal_prices_query_generator
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool
+from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool, StakingService
 
 
 class Balancer(Dex):
@@ -179,5 +179,5 @@ class Balancer(Dex):
             tokens,
             block,
             eth_price,
-            yield_token_price
+            {StakingService.BALANCER: yield_token_price}
         )

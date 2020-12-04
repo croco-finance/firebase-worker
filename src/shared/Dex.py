@@ -34,7 +34,6 @@ class Dex(ABC):
         """
         raise NotImplementedError()
 
-
     def _populate_eth_prices(self, snaps: List[ShareSnap]):
         blocks = {snap.block for snap in snaps}
         eth_prices = self._get_eth_usd_prices(blocks)
@@ -57,10 +56,6 @@ class Dex(ABC):
         Get a generator which is then used to build the request for eth prices
         from thegraph.com.
         """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _get_yield_token_prices(self, blocks: Iterable[int]) -> Dict[int, Decimal]:
         raise NotImplementedError()
 
     @abstractmethod
