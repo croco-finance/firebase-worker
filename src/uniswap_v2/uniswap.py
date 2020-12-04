@@ -233,9 +233,8 @@ class Uniswap(Dex):
         for staking_service_name, snap_list in yield_grouped_block_filtered_snaps.items():
             blocks = {snap.block for snap in snap_list}
             yield_pool = yield_pools[staking_service_name]
-            query = ''.join(_yield_reserves_query_generator(blocks, yield_pools[staking_service_name]))
+            query = ''.join(_yield_reserves_query_generator(blocks, yield_pools[staking_service_name].pool_id))
             data = SubgraphReader(yield_pool.subgraph_name).query(query)
-            print(data)
             prices = {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                       block, val in data['data'].items()}
             for snap in snap_list:
