@@ -119,10 +119,8 @@ class Uniswap(Dex):
         highest_indexed_block = self.get_highest_indexed_block(self.rewards_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
-        skip, snaps = 0, range(max_objects_in_batch)
+        skip = 0
         while True:
-            assert len(snaps) == max_objects_in_batch, 'Incorrect number of snaps in a batch:' \
-                                                       f'{len(snaps)} instead of {max_objects_in_batch}'
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
                 '$SKIP': skip,

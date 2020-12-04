@@ -48,15 +48,15 @@ class Controller:
                 self._upload_snaps(snaps, staked=True)
 
     def _upload_snaps(self, snaps: List[ShareSnap], staked=False):
+        snapPath = 'stakedSnaps' if staked else f'snaps{self.snap_index}'
         logging.info(f"Uploading {len(snaps)} snaps")
-        highest_block = self.last_update[f'snaps{self.snap_index}']
+        highest_block = self.last_update[snapPath]
         for snap in snaps:
             snap_ref = self.root_ref.child(f'users/{snap.user_addr}/{self.exchange_name}'
                                            f'/snaps/{snap.pool_id}/{snap.id}')
             snap_ref.set(snap.to_serializable())
             if snap.block > highest_block:
                 highest_block = snap.block
-        snapPath = 'stakedSnaps' if staked else f'snaps{self.snap_index}'
         self.last_update_ref.child(snapPath).set(highest_block)
         self.last_update[snapPath] = highest_block
         logging.info(f'Updated highest snap firebase block to {highest_block}')
