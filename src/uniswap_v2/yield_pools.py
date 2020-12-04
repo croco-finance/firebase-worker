@@ -1,8 +1,8 @@
 from typing import Dict
 
-from src.shared.type_definitions import YieldPool, Exchange
+from src.uniswap_v2.type_definitions import YieldPool
 
-yield_pools = {
+yield_pools: Dict[str, YieldPool] = {
     'UNI_V2': YieldPool(
         pool_id='0xd3d2e2692501a5c9ca623199d38826e513033a17',
         subgraph_name='uniswap/uniswap-v2',

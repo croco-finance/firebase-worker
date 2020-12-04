@@ -1,10 +1,10 @@
 import logging
 from collections import defaultdict
 from decimal import Decimal
-from typing import List, Dict, Iterable, Callable, Tuple
+from typing import List, Dict, Iterable, Callable
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange, Pool, YieldPool
+from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Pool, StakingService
 from src.subgraph import SubgraphReader
 from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _yield_reserves_query_generator
 from src.uniswap_v2.yield_pools import yield_pools
@@ -224,7 +224,7 @@ class Uniswap(Dex):
     def _populate_yield_prices(self, snaps: List[ShareSnap]):
         yield_grouped_block_filtered_snaps = defaultdict(list)
         for snap in snaps:
-            yield_pool: YieldPool = yield_pools[snap.staking_service]
+            yield_pool = yield_pools[snap.staking_service]
             if snap.block >= yield_pool.firs_block:
                 yield_grouped_block_filtered_snaps[snap.staking_service].append(snap)
         if not yield_grouped_block_filtered_snaps:
@@ -232,9 +232,10 @@ class Uniswap(Dex):
 
         for staking_service_name, snap_list in yield_grouped_block_filtered_snaps.items():
             blocks = {snap.block for snap in snap_list}
-            yield_pool: YieldPool = yield_pools[staking_service_name]
+            yield_pool = yield_pools[staking_service_name]
             query = ''.join(_yield_reserves_query_generator(blocks, yield_pools[staking_service_name]))
             data = SubgraphReader(yield_pool.subgraph_name).query(query)
+            print(data)
             prices = {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                       block, val in data['data'].items()}
             for snap in snap_list:
@@ -262,7 +263,7 @@ class Uniswap(Dex):
         }'''
         skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
-        yield_token_price = self._get_yield_token_prices([highest_indexed_block])[highest_indexed_block]
+        yield_token_prices = self._get_yield_token_prices()
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
@@ -273,10 +274,25 @@ class Uniswap(Dex):
             if not raw_pools:
                 break
 
-            yield [self._parse_pool(pool, highest_indexed_block, eth_price, yield_token_price) for pool in raw_pools]
+            yield [self._parse_pool(pool, highest_indexed_block, eth_price, yield_token_prices) for pool in raw_pools]
             skip += max_objects_in_batch
 
-    def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal, yield_token_price: Decimal) -> Pool:
+    def _get_yield_token_prices(self) -> Dict[StakingService, Decimal]:
+        prices = {}
+        for staking_service, yield_pool in yield_pools.items():
+            if staking_service is StakingService.UNI_V2:
+                # We are no longer supporting UNI rewards as liquidity mining ended
+                continue
+            subgraph = SubgraphReader(yield_pool.subgraph_name)
+            highest_indexed_block = self.get_highest_indexed_block(subgraph)
+            query = ''.join(_yield_reserves_query_generator([highest_indexed_block], yield_pool.pool_id))
+            data = SubgraphReader(yield_pool.subgraph_name).query(query)
+            val = data['data'].values()[0]
+            prices[staking_service] = Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0']))
+        return prices
+
+    def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal,
+                    yield_token_prices: Dict[StakingService, Decimal]) -> Pool:
         reserves_usd = Decimal(raw_pool['reserveUSD'])
         tokens: List[PoolToken] = []
         for i in range(2):
@@ -297,5 +313,5 @@ class Uniswap(Dex):
             tokens,
             block,
             eth_price,
-            yield_token_price
+            yield_token_prices
         )

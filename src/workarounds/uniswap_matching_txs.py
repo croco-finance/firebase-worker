@@ -3,17 +3,16 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import List, Iterable, Dict, Tuple
 
-from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField
+from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Exchange
 from src.subgraph import SubgraphReader
 from src.uniswap_v2.uniswap import Uniswap
 
 
 class UniMatchingTxs(Uniswap):
 
-    def __init__(self):
-        super().__init__(dex_subgraph='uniswap/uniswap-v2')
+    def __init__(self, dex_graph_name='uniswap/uniswap-v2', exchange=Exchange.UNI_V2):
+        super().__init__(dex_graph_name=dex_graph_name, exchange=exchange)
         self.tx_graph = SubgraphReader('benesjan/uni-v2-lp-txs')
-        self.uni_price_first_block = 10876348
 
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> Iterable[List[ShareSnap]]:
         query = '''{
