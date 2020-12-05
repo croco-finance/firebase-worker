@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from decimal import Decimal
-from typing import List, Dict, Iterable, Callable
+from typing import List, Dict, Iterable, Callable, Optional
 
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Pool, StakingService
@@ -115,7 +115,7 @@ class Uniswap(Dex):
             yield_token_price=None
         )
 
-    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
+    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int, staking_service: Optional[StakingService] = None) -> Iterable[List[ShareSnap]]:
         highest_indexed_block = self.get_highest_indexed_block(self.rewards_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
@@ -126,6 +126,7 @@ class Uniswap(Dex):
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
                 '$EXCHANGE': self.exchange.name,
+                '$STAKING_SERVICE_FILTER': f', stakingService: {staking_service.name}' if staking_service else ''
             }
             snaps = self._get_staked_snaps(params)
             skip += max_objects_in_batch
@@ -139,7 +140,7 @@ class Uniswap(Dex):
     def _get_staked_snaps(self, params: Dict) -> List[ShareSnap]:
         query = '''
         {
-            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, , exchange: "$EXCHANGE"}) {
+            stakePositionSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: blockNumber, orderDirection: asc, where: {blockNumber_gte: $BLOCK, exchange: $EXCHANGE$STAKING_SERVICE_FILTER}) {
                 id
                 stakingService
                 user

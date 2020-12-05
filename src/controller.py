@@ -1,12 +1,12 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, YieldReward, Pool
+from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingService
 
 
 class Controller:
@@ -35,10 +35,11 @@ class Controller:
                 prev_lowest, prev_highest = lowest, highest
                 self._upload_snaps(snaps)
 
-    def update_staked_snaps(self, max_objects_in_batch):
+    def update_staked_snaps(self, max_objects_in_batch, staking_service: Optional[StakingService] = None):
         logging.info('STAKED SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
-        for snaps in self.instance.fetch_new_staked_snaps(self.last_update['stakedSnaps'], max_objects_in_batch):
+        for snaps in self.instance.fetch_new_staked_snaps(self.last_update['stakedSnaps'], max_objects_in_batch,
+                                                          staking_service=staking_service):
             if snaps:
                 lowest, highest = self._get_lowest_highest_block(snaps)
                 logging.info(f'Lowest block: {lowest}, highest block: {highest}')
