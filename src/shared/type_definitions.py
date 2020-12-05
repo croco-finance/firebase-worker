@@ -109,6 +109,10 @@ class ShareSnap(object):
             serializable['yieldTokenPrice'] = str(self.yield_token_price)
         if self.staking_service:
             serializable['stakingService'] = self.staking_service.name
+        if self.staking_service is StakingService.SUSHI:
+            split_id = self.id.split('-')
+            assert len(split_id) > 1, 'Incorrect id of staked snap in Sushi, id: ' + self.id
+            serializable['idWithinStakingContract'] = int(self.id.split('-')[0])
         return serializable
 
 
