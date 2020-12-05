@@ -198,7 +198,7 @@ class Uniswap(Dex):
                                     Decimal('0.5'),
                                     res,
                                     price_usd))
-        staking_service = stake['stakingService'] if 'stakingService' in stake else None
+        staking_service = StakingService[stake['stakingService']] if 'stakingService' in stake else None
         return ShareSnap(
             stake['id'],
             self.exchange,
@@ -284,7 +284,7 @@ class Uniswap(Dex):
             highest_indexed_block = self.get_highest_indexed_block(subgraph)
             query = ''.join(_yield_reserves_query_generator([highest_indexed_block], yield_pool.pool_id))
             data = SubgraphReader(yield_pool.subgraph_name).query(query)
-            val = data['data'].values()[0]
+            val = list(data['data'].values())[0]
             prices[staking_service] = Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0']))
         return prices
 

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import List, Dict, Iterable, Callable
 
-from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward
+from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward, StakingService
 from src.subgraph import SubgraphReader
 
 
@@ -122,5 +122,5 @@ class Dex(ABC):
             int(reward['blockNumber']),
             int(reward['blockTimestamp']),
             reward['transaction'],
-            reward['stakingService']
+            StakingService[reward['stakingService']]
         )

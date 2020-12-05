@@ -67,10 +67,9 @@ class Pool(object):
             'tokens': [token.to_serializable() for token in self.tokens],
             'block': self.block,
             'ethPrice': str(self.eth_price),
-            'yieldTokenPrice': str(self.yield_token_price)
         }
         if self.relevant_yield_token_prices:
-            serializable['relevantYieldTokenPrices'] = {str(stakingService.name): str(price) for stakingService, price
+            serializable['relevantYieldTokenPrices'] = {stakingService.name: str(price) for stakingService, price
                                                         in self.relevant_yield_token_prices.items()}
         return serializable
 
@@ -109,7 +108,7 @@ class ShareSnap(object):
         if self.yield_token_price:
             serializable['yieldTokenPrice'] = str(self.yield_token_price)
         if self.staking_service:
-            serializable['stakingService'] = self.staking_service
+            serializable['stakingService'] = self.staking_service.name
         return serializable
 
 
@@ -132,7 +131,7 @@ class YieldReward(object):
             'block': self.block,
             'timestamp': self.timestamp,
             'txHash': self.tx_hash,
-            'stakingService': self.staking_service
+            'stakingService': self.staking_service.name
         }
         if self.pool_id:
             # Not present in Balancer
