@@ -163,12 +163,12 @@ class Uniswap(Dex):
 
         # 2. get the pool shares at the time of those snapshots
         query = ''.join(_staked_query_generator(staked))
-        data = self.dex_graph.query(query, {})
-        # buikd the snap list and return
+        data = self.dex_graph.query(query, {})['data']
+        # build the snap list and return
         snaps = []
         for key, staked in staked_dict.items():
             pool_key = key.split("-")[0]
-            pool = data['data'][pool_key]
+            pool = data[pool_key]
             snaps.append(self._build_share_snap(staked, pool))
         return snaps
 

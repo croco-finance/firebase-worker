@@ -3,7 +3,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from src.error_definitions import NonExistentUserException
+from src.error_definitions import NonExistentUserException, NotIndexedBlockException
 
 
 class SubgraphReader:
@@ -14,6 +14,7 @@ class SubgraphReader:
     def __init__(self, subgraph_name):
         provider = 'https://api.thegraph.com/subgraphs/name/'
         # provider = 'http://graph.marlin.pro/subgraphs/name/'
+        self.subgraph_name = subgraph_name
         self.url = urljoin(provider, subgraph_name)
 
     def query(self, query, params=None):
@@ -27,7 +28,9 @@ class SubgraphReader:
             for error in result['errors']:
                 if error['message'] == 'Null value resolved for non-null field `user`':
                     raise NonExistentUserException()
-            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}')
+                elif 'Failed to decode `block.number`' in error['message']:
+                    raise NotIndexedBlockException(f'Subgraph: {self.subgraph_name}, message: {error["message"]}')
+            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}, subgraph: {self.subgraph_name}')
         return result
 
     @staticmethod
