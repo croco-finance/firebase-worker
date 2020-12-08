@@ -1,4 +1,3 @@
-import logging
 from typing import List, Optional
 
 import firebase_admin
@@ -10,8 +9,9 @@ from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingSer
 
 
 class Controller:
-    def __init__(self, instance: Dex, snap_index=''):
+    def __init__(self, instance: Dex, logger, snap_index=''):
         self.instance = instance
+        self.logger = logger
         self.snap_index = snap_index
         self.exchange_name = str(instance.exchange.name)
         if not firebase_admin._apps:
@@ -25,25 +25,25 @@ class Controller:
         self.last_update = self.last_update_ref.get()
 
     def update_snaps(self, max_objects_in_batch):
-        logging.info('SNAP UPDATE INITIATED')
+        self.logger.info('SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
         for snaps in self.instance.fetch_new_snaps(self.last_update[f'snaps{self.snap_index}'], max_objects_in_batch):
             if snaps:
                 lowest, highest = self._get_lowest_highest_block(snaps)
-                logging.info(f'Lowest block: {lowest}, highest block: {highest}')
+                self.logger.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                                f'prev_highest: {prev_highest}, lowest: {lowest}'
                 prev_lowest, prev_highest = lowest, highest
                 self._upload_snaps(snaps)
 
     def update_staked_snaps(self, max_objects_in_batch, staking_service: Optional[StakingService] = None):
-        logging.info('STAKED SNAP UPDATE INITIATED')
+        self.logger.info('STAKED SNAP UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
         for snaps in self.instance.fetch_new_staked_snaps(self.last_update['stakedSnaps'], max_objects_in_batch,
                                                           staking_service=staking_service):
             if snaps:
                 lowest, highest = self._get_lowest_highest_block(snaps)
-                logging.info(f'Lowest block: {lowest}, highest block: {highest}')
+                self.logger.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                                f'prev_highest: {prev_highest}, lowest: {lowest}'
                 prev_lowest, prev_highest = lowest, highest
@@ -51,7 +51,7 @@ class Controller:
 
     def _upload_snaps(self, snaps: List[ShareSnap], staked=False):
         snapPath = 'stakedSnaps' if staked else f'snaps{self.snap_index}'
-        logging.info(f"Uploading {len(snaps)} snaps")
+        self.logger.info(f'Uploading {len(snaps)} {"staked" if staked else ""} snaps')
         highest_block = self.last_update[snapPath]
         for snap in snaps:
             snap_ref = self.root_ref.child(f'users/{snap.user_addr}/{self.exchange_name}'
@@ -61,7 +61,7 @@ class Controller:
                 highest_block = snap.block
         self.last_update_ref.child(snapPath).set(highest_block)
         self.last_update[snapPath] = highest_block
-        logging.info(f'Updated highest snap firebase block to {highest_block}')
+        self.logger.info(f'Updated highest snap firebase block to {highest_block}')
 
     @staticmethod
     def _get_lowest_highest_block(vals):
@@ -74,19 +74,19 @@ class Controller:
         return lowest_, highest_
 
     def update_yields(self, max_objects_in_batch):
-        logging.info('YIELD UPDATE INITIATED')
+        self.logger.info('YIELD UPDATE INITIATED')
         prev_lowest, prev_highest = 1000000000, 0
         for yields in self.instance.fetch_yields(self.last_update['yields'], max_objects_in_batch):
             if yields:
                 lowest, highest = self._get_lowest_highest_block(yields)
-                logging.info(f'Lowest block: {lowest}, highest block: {highest}')
+                self.logger.info(f'Lowest block: {lowest}, highest block: {highest}')
                 assert prev_highest <= lowest, f'Blocks not properly sorted: ' \
                                                f'prev_highest: {prev_highest}, lowest: {lowest}'
                 prev_lowest, prev_highest = lowest, highest
                 self._upload_yields(yields)
 
     def _upload_yields(self, yields: List[YieldReward]):
-        logging.info(f"Uploading {len(yields)} yields")
+        self.logger.info(f"Uploading {len(yields)} yields")
         highest_block = self.last_update['yields']
         for yield_ in yields:
             yield_ref = self.root_ref.child(f'users/{yield_.user_addr}/{self.exchange_name}/yields/{yield_.id}')
@@ -95,16 +95,16 @@ class Controller:
                 highest_block = yield_.block
         self.last_update_ref.child('yields').set(highest_block)
         self.last_update['yields'] = highest_block
-        logging.info(f'Updated highest yields firebase block to {highest_block}')
+        self.logger.info(f'Updated highest yields firebase block to {highest_block}')
 
     def update_pools(self, max_objects_in_batch, min_liquidity=100000):
-        logging.info('POOL UPDATE INITIATED')
+        self.logger.info('POOL UPDATE INITIATED')
         for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity):
             if pools:
                 self._upload_pools(pools)
 
     def _upload_pools(self, pools: List[Pool]):
-        logging.info(f"Uploading {len(pools)} pools")
+        self.logger.info(f"Uploading {len(pools)} pools")
         for pool in pools:
             pool_ref = self.root_ref.child(f'pools/{pool.id}')
             pool_ref.set(pool.to_serializable())

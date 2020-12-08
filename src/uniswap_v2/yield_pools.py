@@ -11,7 +11,7 @@ yield_pools: Dict[StakingService, YieldPool] = {
     ),
     StakingService.SUSHI: YieldPool(
         pool_id='0x795065dcc9f64b5614c407a6efdc400da6221fb0',
-        subgraph_name='benesjan/sushi-swap',
+        subgraph_name='croco-finance/sushiswap',
         firs_block=10829340
     ),
     # StakingService.SUSHI: YieldPool(
