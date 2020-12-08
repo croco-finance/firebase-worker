@@ -17,7 +17,8 @@ class Controller:
         if not firebase_admin._apps:
             cred = credentials.Certificate('serviceAccountKey.json')
             firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://croco-finance.firebaseio.com/'
+                'databaseURL': 'https://croco-finance-a02aa.firebaseio.com/'
+                # 'databaseURL': 'https://croco-finance.firebaseio.com/'
             })
         self.root_ref = db.reference('/')
         self.last_update_ref = self.root_ref.child('lastUpdate').child(self.exchange_name)
