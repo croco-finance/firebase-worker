@@ -24,9 +24,9 @@ class CurrencyField(object):
 @attr.s(auto_attribs=True, slots=True)
 class PoolToken(object):
     token: CurrencyField
-    weight: Decimal  # weights are normalized to (0,1)
-    reserve: Decimal
-    price_usd: Decimal
+    weight: Decimal = attr.ib(converter=Decimal)  # weights are normalized to (0,1)
+    reserve: Decimal = attr.ib(converter=Decimal)
+    price_usd: Decimal = attr.ib(converter=Decimal)
 
     def to_serializable(self) -> Dict:
         return {

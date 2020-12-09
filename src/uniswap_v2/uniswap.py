@@ -105,15 +105,13 @@ class Uniswap(Dex):
             self.exchange,
             snap['user']['id'],
             pool_id,
-            Decimal(snap['liquidityTokenBalance']),
-            Decimal(snap['totalSupply']),
+            snap['liquidityTokenBalance'],
+            snap['totalSupply'],
             tokens,
             snap['block'],
             snap['timestamp'],
             snap['transaction']['id'],
             Decimal(snap['transaction']['gasUsed']) * Decimal(snap['transaction']['gasPrice']) * Decimal('1E-18'),
-            eth_price=None,
-            yield_token_price=None
         )
 
     def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int,
@@ -207,16 +205,14 @@ class Uniswap(Dex):
             self.exchange,
             stake['user'],
             pool['id'],
-            Decimal(stake['liquidityTokenBalance']),
-            Decimal(pool['totalSupply']),
+            stake['liquidityTokenBalance'],
+            pool['totalSupply'],
             tokens,
-            int(stake['blockNumber']),
-            int(stake['blockTimestamp']),
+            stake['blockNumber'],
+            stake['blockTimestamp'],
             stake['txHash'],
             Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
-            None,
-            None,
-            staking_service
+            staking_service=staking_service
         )
 
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
