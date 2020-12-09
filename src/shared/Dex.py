@@ -12,9 +12,10 @@ class Dex(ABC):
     Base class defining the interface for DEXes.
     """
 
-    def __init__(self, dex_graph_name: str, exchange: Exchange):
+    def __init__(self, dex_graph_name: str, exchange: Exchange, eth_price_first_block=0):
         self.dex_graph = SubgraphReader(dex_graph_name)
         self.exchange = exchange
+        self.eth_price_first_block = eth_price_first_block
         self.block_graph = SubgraphReader('blocklytics/ethereum-blocks')
         self.rewards_graph = SubgraphReader('benesjan/dex-rewards-subgraph')
 
@@ -35,6 +36,9 @@ class Dex(ABC):
         raise NotImplementedError()
 
     def _populate_eth_prices(self, snaps: List[ShareSnap]):
+        snaps = [snap for snap in snaps if snap.block >= self.eth_price_first_block]
+        if not snaps:
+            return
         blocks = {snap.block for snap in snaps}
         eth_prices = self._get_eth_usd_prices(blocks)
         for snap in snaps:

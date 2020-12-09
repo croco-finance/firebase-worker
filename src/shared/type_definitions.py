@@ -80,17 +80,17 @@ class ShareSnap(object):
     exchange: Exchange
     user_addr: str
     pool_id: str
-    liquidity_token_balance: Decimal
-    liquidity_token_total_supply: Decimal
+    liquidity_token_balance: Decimal = attr.ib(converter=Decimal)
+    liquidity_token_total_supply: Decimal = attr.ib(converter=Decimal)
     tokens: List[PoolToken]
-    block: int
-    timestamp: int
+    block: int = attr.ib(converter=int)
+    timestamp: int = attr.ib(converter=int)
     tx_hash: str
-    tx_cost_eth: Decimal
+    tx_cost_eth: Decimal = attr.ib(converter=Decimal)
     # Optional because it's more efficient to populate the prices after having the instance
-    eth_price: Optional[Decimal]
+    eth_price: Optional[Decimal] = attr.ib(default=None)
     # Set for snaps which were at the time eligible for yield reward if the price was available in the graph
-    yield_token_price: Optional[Decimal]
+    yield_token_price: Optional[Decimal] = attr.ib(default=None)
     staking_service: Optional[StakingService] = attr.ib(default=None)
 
     def to_serializable(self) -> Dict:

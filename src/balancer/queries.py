@@ -54,10 +54,10 @@ def _eth_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     """
     Example return value:
     {
-        t10692365: tokenPrice(block: { number: 10692365 }, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
+        b10692365: tokenPrice(block: { number: 10692365 }, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
             price
         }
-        t10880437: tokenPrice(block: { number: 10880437 }, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
+        b10880437: tokenPrice(block: { number: 10880437 }, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {
             price
         }
     }
@@ -65,7 +65,7 @@ def _eth_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
     yield '{'
     for block_height in block_heights:
         yield f'''
-            t{block_height}: tokenPrice(block: {{ number: {block_height} }}, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {{
+            b{block_height}: tokenPrice(block: {{ number: {block_height} }}, id: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2") {{
                 price
             }}
             '''

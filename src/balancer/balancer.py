@@ -18,6 +18,36 @@ class Balancer(Dex):
         self.bal_price_first_block = 10323092
 
     def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
+        query = '''{
+            snaps: poolShareSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK}) {
+                id
+                userAddress {
+                    id
+                }
+                balance
+                tokenSnapshots {
+                    balance
+                    token {
+                        poolId {
+                            id
+                            totalWeight
+                        }
+                        symbol
+                        name
+                        address
+                        balance
+                        denormWeight
+                    }
+                }
+                liquidity
+                totalShares
+                txHash
+                block
+                timestamp
+                gasUsed
+                gasPrice
+            }
+        }'''
         skip = 0
         while True:
             params = {
@@ -26,12 +56,10 @@ class Balancer(Dex):
                 '$BLOCK': last_block_update,
             }
             # The number of txs will not add up to query limit, due to tx filtering
-            txs = self._get_txs(params)
-            if not txs:
+            raw_snaps = self.dex_graph.query(query, params)['data']['snaps']
+            if not raw_snaps:
                 break
-            query = ''.join(share_query_generator(txs))
-            raw_snaps = self.dex_graph.query(query, {})['data']
-            snaps = self._parse_snaps(raw_snaps)
+            snaps = [self._parse_snap(snap) for snap in raw_snaps]
             if snaps:
                 self._populate_eth_prices(snaps)
                 self._populate_bal_prices(snaps)
@@ -39,63 +67,30 @@ class Balancer(Dex):
             yield snaps
             skip += max_objects_in_batch
 
-    def _get_txs(self, params: Dict) -> List[Dict]:
-        query = '''
-        {
-            transactions(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK, event_in:["join", "exit"]}) {
-                tx
-                block
-                timestamp
-                poolAddress {
-                    id
-                }
-                userAddress {
-                    id
-                }
-                event
-                gasUsed
-                gasPrice
-            }
-        }
-        '''
-        data = self.dex_graph.query(query, params)['data']
-        # There is a bug in the subgraph which returns txs twice
-        # I'll filter them in the following for loop
-        tx_hashes, filtered_txs = set(), []
-        for tx in data['transactions']:
-            if tx['tx'] not in tx_hashes:
-                tx_hashes.add(tx['tx'])
-                filtered_txs.append(tx)
-        logging.info(f'Filtered: {len(data["transactions"]) - len(filtered_txs)} txs due to duplicity')
-        return filtered_txs
-
-    def _parse_snaps(self, shares: Dict[str, Dict]) -> List[ShareSnap]:
-        snaps = []
-        for key, share_list in shares.items():
-            if len(share_list) != 1:
-                # Occurs for weird unused pools on Balancer - ignoring for now
-                logging.warning(f'Incorrect number of pool shares in a list: {share_list}, '
-                                f'key: {key}')
-                continue
-            share = share_list[0]
-            tx_, block_, timestamp_, tx_cost_wei, user_addr = key.split('_')
-            pool = self._parse_pool(share['poolId'], int(block_), Decimal(0), Decimal(0))
-            snaps.append(ShareSnap(
-                tx_[1:],  # This ID might not be unique if user did multiple changes in one call but I don't care
-                self.exchange,
-                user_addr,
-                pool.id,
-                Decimal(share['balance']),
-                pool.liquidity_token_total_supply,
-                pool.tokens,
-                pool.block,
-                int(timestamp_),
-                tx_[1:],
-                Decimal(tx_cost_wei) * Decimal('1E-18'),
-                None,
-                None
-            ))
-        return snaps
+    def _parse_snap(self, snap: Dict) -> ShareSnap:
+        # TODO: simplify the following once the subgrpah is resynced
+        pool = snap['tokenSnapshots'][0]['token']['poolId']
+        total_weight = Decimal(pool['totalWeight'])
+        reserves_usd = Decimal(snap['liquidity'])
+        tokens: List[PoolToken] = []
+        for tokenSnap in snap['tokenSnapshots']:
+            token = tokenSnap['token']
+            # Replace token reserves with the one from snap
+            token['balance'] = snap['balance']
+            tokens.append(self._parse_token(token, total_weight, reserves_usd))
+        return ShareSnap(
+            snap['id'],
+            self.exchange,
+            snap['userAddress'],
+            pool['id'],
+            snap['balance'],
+            snap['totalShares'],
+            tokens,
+            snap['block'],
+            snap['timestamp'],
+            snap['txHash'],
+            Decimal(snap['gasPrice']) * Decimal(snap['gasUsed']) * Decimal('1E-18')
+        )
 
     def _populate_bal_prices(self, snaps: List[ShareSnap]):
         relevant_snaps = [snap for snap in snaps if snap.block >= self.bal_price_first_block]
@@ -157,18 +152,7 @@ class Balancer(Dex):
         reserves_usd = Decimal(raw_pool['liquidity'])
         tokens: List[PoolToken] = []
         for token in raw_pool['tokens']:
-            token_weight = Decimal(token['denormWeight']) / total_weight
-            token_reserve = Decimal(token['balance'])
-            price_usd = reserves_usd * token_weight / token_reserve if token_reserve != 0 else 0
-            tokens.append(PoolToken(
-                CurrencyField(symbol=token['symbol'],
-                              name=token['name'],
-                              contract_address=token['address'],
-                              platform='ethereum'),
-                token_weight,
-                token_reserve,
-                price_usd,
-            ))
+            tokens.append(self._parse_token(token, total_weight, reserves_usd))
         return Pool(
             raw_pool['id'],
             self.exchange,
@@ -177,6 +161,20 @@ class Balancer(Dex):
             block,
             eth_price,
             {StakingService.BALANCER: yield_token_price}
+        )
+
+    def _parse_token(self, token: Dict, total_weight: Decimal, reserves_usd: Decimal) -> PoolToken:
+        token_weight = Decimal(token['denormWeight']) / total_weight
+        token_reserve = Decimal(token['balance'])
+        price_usd = reserves_usd * token_weight / token_reserve if token_reserve != 0 else 0
+        return PoolToken(
+            CurrencyField(symbol=token['symbol'],
+                          name=token['name'],
+                          contract_address=token['address'],
+                          platform='ethereum'),
+            token_weight,
+            token_reserve,
+            price_usd
         )
 
     def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
