@@ -8,9 +8,6 @@ from src.workarounds.uniswap_matching_txs import UniMatchingTxs
 
 class UniNullUserFallbackMatchingTxs(UniMatchingTxs):
 
-    def __init__(self):
-        super().__init__()
-
     def fetch_new_snaps(self, last_block_update: int, query_limit: int) -> List[ShareSnap]:
         id_query = '''{
             snaps: liquidityPositionSnapshots(first: 1000, orderBy: block, orderDirection: asc, where: {block_gte: $MIN_BLOCK, block_lt: $MAX_BLOCK}) {

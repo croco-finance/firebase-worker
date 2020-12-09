@@ -4,9 +4,10 @@ from decimal import Decimal
 from typing import List, Dict, Iterable, Callable, Optional
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Pool, StakingService
+from src.shared.type_definitions import ShareSnap, PoolToken, CurrencyField, Pool, StakingService, PoolDayData
 from src.subgraph import SubgraphReader
-from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, _yield_reserves_query_generator
+from src.uniswap_v2.queries import _staked_query_generator, _eth_prices_query_generator, yield_reserves_query_generator, \
+    pool_day_data_query_generator
 from src.uniswap_v2.yield_pools import yield_pools
 
 
@@ -115,7 +116,8 @@ class Uniswap(Dex):
             yield_token_price=None
         )
 
-    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int, staking_service: Optional[StakingService] = None) -> Iterable[List[ShareSnap]]:
+    def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int,
+                               staking_service: Optional[StakingService] = None) -> Iterable[List[ShareSnap]]:
         highest_indexed_block = self.get_highest_indexed_block(self.rewards_graph)
         logging.info(f'{self.exchange}: Last update block: {last_block_update}, '
                      f'highest indexed block: {highest_indexed_block}')
@@ -232,7 +234,7 @@ class Uniswap(Dex):
         for staking_service_name, snap_list in yield_grouped_block_filtered_snaps.items():
             blocks = {snap.block for snap in snap_list}
             yield_pool = yield_pools[staking_service_name]
-            query = ''.join(_yield_reserves_query_generator(blocks, yield_pools[staking_service_name].pool_id))
+            query = ''.join(yield_reserves_query_generator(blocks, yield_pools[staking_service_name].pool_id))
             data = SubgraphReader(yield_pool.subgraph_name).query(query)
             prices = {int(block[1:]): Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0'])) for
                       block, val in data['data'].items()}
@@ -283,7 +285,7 @@ class Uniswap(Dex):
                 continue
             subgraph = SubgraphReader(yield_pool.subgraph_name)
             highest_indexed_block = self.get_highest_indexed_block(subgraph)
-            query = ''.join(_yield_reserves_query_generator([highest_indexed_block], yield_pool.pool_id))
+            query = ''.join(yield_reserves_query_generator([highest_indexed_block], yield_pool.pool_id))
             data = SubgraphReader(yield_pool.subgraph_name).query(query)
             val = list(data['data'].values())[0]
             prices[staking_service] = Decimal(val['reserveUSD']) / (2 * Decimal(val['reserve0']))
@@ -313,3 +315,32 @@ class Uniswap(Dex):
             eth_price,
             yield_token_prices
         )
+
+    def get_pool_day_data(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[PoolDayData]]:
+        id_query = '''{
+            pairs(first: $MAX_OBJECTS, skip: $SKIP, orderBy: reserveUSD, orderDirection: desc, where: {reserveUSD_gte: $MIN_LIQUIDITY}) {
+                id
+            }
+        }'''
+        skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
+        while True:
+            params = {
+                '$MAX_OBJECTS': max_objects_in_batch,
+                '$SKIP': skip,
+                '$MIN_LIQUIDITY': min_liquidity,
+            }
+            pool_ids = self.dex_graph.query(id_query, params)['data']['pairs']
+            if not pool_ids:
+                break
+
+            query = ''.join(pool_day_data_query_generator(pool_ids))
+            data = self.dex_graph.query(query)['data']
+            yield [self._parse_pool_day_data(pool[0]) for pool in data.values()]
+            skip += max_objects_in_batch
+
+    def _parse_pool_day_data(self, pool: Dict) -> PoolDayData:
+        return PoolDayData(pool_id=pool['pairAddress'],
+                           timestamp=int(pool['date']),
+                           liquidity_token_total_supply=pool['totalSupply'],
+                           usd_volume=Decimal(pool['dailyVolumeUSD']),
+                           token_volume=[Decimal(pool['dailyVolumeToken0']), Decimal(pool['dailyVolumeToken0'])])

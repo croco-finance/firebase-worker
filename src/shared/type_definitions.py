@@ -141,3 +141,21 @@ class YieldReward(object):
             # Not present in Balancer
             serializable['poolId'] = str(self.pool_id)
         return serializable
+
+
+@attr.s(auto_attribs=True, slots=True)
+class PoolDayData(object):
+    # Id of the object in the uni subgraph is {pool_id}-{day_id}
+    pool_id: str  # The id of the
+    timestamp: int  # timestamp of the beginning of the day
+    liquidity_token_total_supply: Decimal
+    usd_volume: Decimal
+    token_volume: List[Decimal]
+
+    def to_serializable(self) -> Dict:
+        return {
+            'date': self.timestamp,
+            'liquidityTokenTotalSupply': str(self.liquidity_token_total_supply),
+            'usdVolume': str(self.usd_volume),
+            'tokenVolume': [str(volume) for volume in self.token_volume],
+        }

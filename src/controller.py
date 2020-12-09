@@ -5,7 +5,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingService
+from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingService, PoolDayData
 
 
 class Controller:
@@ -108,3 +108,15 @@ class Controller:
         for pool in pools:
             pool_ref = self.root_ref.child(f'pools/{pool.id}')
             pool_ref.set(pool.to_serializable())
+
+    def update_pool_day_data(self, max_objects_in_batch, min_liquidity=100000):
+        self.logger.info('POOL DAY DATA UPDATE INITIATED')
+        for data in self.instance.get_pool_day_data(max_objects_in_batch, min_liquidity):
+            if data:
+                self._upload_pool_day_data(data)
+
+    def _upload_pool_day_data(self, data: List[PoolDayData]):
+        self.logger.info(f"Uploading {len(data)} pool day data")
+        for daily in data:
+            pool_ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.timestamp}')
+            pool_ref.set(daily.to_serializable())

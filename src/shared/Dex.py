@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import List, Dict, Iterable, Callable
 
-from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward, StakingService
+from src.shared.type_definitions import ShareSnap, Exchange, Pool, YieldReward, StakingService, PoolDayData
 from src.subgraph import SubgraphReader
 
 
@@ -124,3 +124,7 @@ class Dex(ABC):
             reward['transaction'],
             StakingService[reward['stakingService']]
         )
+
+    @abstractmethod
+    def get_pool_day_data(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[PoolDayData]]:
+        raise NotImplementedError
