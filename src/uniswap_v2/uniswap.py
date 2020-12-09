@@ -343,4 +343,4 @@ class Uniswap(Dex):
                            timestamp=int(pool['date']),
                            liquidity_token_total_supply=pool['totalSupply'],
                            usd_volume=Decimal(pool['dailyVolumeUSD']),
-                           token_volume=[Decimal(pool['dailyVolumeToken0']), Decimal(pool['dailyVolumeToken0'])])
+                           token_volume=[Decimal(pool['dailyVolumeToken0']), Decimal(pool['dailyVolumeToken1'])])

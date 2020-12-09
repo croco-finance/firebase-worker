@@ -51,7 +51,7 @@ class Controller:
 
     def _upload_snaps(self, snaps: List[ShareSnap], staked=False):
         snapPath = 'stakedSnaps' if staked else f'snaps{self.snap_index}'
-        self.logger.info(f'Uploading {len(snaps)} {"staked" if staked else ""} snaps')
+        self.logger.info(f'Uploading {len(snaps)} {"staked " if staked else ""}snaps')
         highest_block = self.last_update[snapPath]
         for snap in snaps:
             snap_ref = self.root_ref.child(f'users/{snap.user_addr}/{self.exchange_name}'
