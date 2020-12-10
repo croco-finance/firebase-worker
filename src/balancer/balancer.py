@@ -1,8 +1,7 @@
-import logging
 from decimal import Decimal
 from typing import List, Dict, Iterable, Callable
 
-from src.balancer.queries import share_query_generator, _eth_prices_query_generator, _bal_prices_query_generator
+from src.balancer.queries import _eth_prices_query_generator, _bal_prices_query_generator
 from src.shared.Dex import Dex
 from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool, StakingService, PoolDayData
 
@@ -13,7 +12,7 @@ class Balancer(Dex):
     """
 
     def __init__(self):
-        super().__init__('balancer-labs/balancer', Exchange.BALANCER)
+        super().__init__('benesjan/balancer-with-snapshots', Exchange.BALANCER, eth_price_first_block=9783867)
         # rewards start at 10322999 but at that point the prices are not yet in the graph
         self.bal_price_first_block = 10323092
 

@@ -11,11 +11,13 @@ class SubgraphReader:
     General read handler of subgraph's data.
     """
 
-    def __init__(self, subgraph_name):
-        provider = 'https://api.thegraph.com/subgraphs/name/'
-        # provider = 'http://graph.marlin.pro/subgraphs/name/'
-        self.subgraph_name = subgraph_name
-        self.url = urljoin(provider, subgraph_name)
+    def __init__(self, subgraph):
+        if subgraph.startswith('http'):
+            self.url = subgraph
+        else:
+            provider = 'https://api.thegraph.com/subgraphs/name/'
+            # provider = 'http://graph.marlin.pro/subgraphs/name/'
+            self.url = urljoin(provider, subgraph)
 
     def query(self, query, params=None):
         """
@@ -29,8 +31,8 @@ class SubgraphReader:
                 if error['message'] == 'Null value resolved for non-null field `user`':
                     raise NonExistentUserException()
                 elif 'Failed to decode `block.number`' in error['message']:
-                    raise NotIndexedBlockException(f'Subgraph: {self.subgraph_name}, message: {error["message"]}')
-            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}, subgraph: {self.subgraph_name}')
+                    raise NotIndexedBlockException(f'Subgraph: {self.url}, message: {error["message"]}')
+            logging.error(f'Request fetching failed. Result: {result},\nquery: {query}, subgraph: {self.url}')
         return result
 
     @staticmethod
