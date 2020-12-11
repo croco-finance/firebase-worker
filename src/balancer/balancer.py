@@ -80,7 +80,7 @@ class Balancer(Dex):
         return ShareSnap(
             snap['id'],
             self.exchange,
-            snap['userAddress'],
+            snap['userAddress']['id'],
             pool['id'],
             snap['balance'],
             snap['totalShares'],
