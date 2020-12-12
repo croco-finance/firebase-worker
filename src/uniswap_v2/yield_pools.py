@@ -20,8 +20,8 @@ yield_pools: Dict[StakingService, YieldPool] = {
     #     firs_block=10736320
     # ),
     StakingService.INDEX: YieldPool(
-        pool_id='0x4d5ef58aac27d99935e5b6b4a6778ff292059991',
+        pool_id='0x3452a7f30a712e415a0674c0341d44ee9d9786f9',
         subgraph_name='uniswap/uniswap-v2',
-        firs_block=10876348
+        firs_block=11004221
     )
 }

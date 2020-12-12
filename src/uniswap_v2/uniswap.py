@@ -259,7 +259,7 @@ class Uniswap(Dex):
         }'''
         skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
-        yield_token_prices = self._get_yield_token_prices()
+        yield_token_prices = self._get_relevant_yield_token_prices()
         while True:
             params = {
                 '$MAX_OBJECTS': max_objects_in_batch,
@@ -273,12 +273,9 @@ class Uniswap(Dex):
             yield [self._parse_pool(pool, highest_indexed_block, eth_price, yield_token_prices) for pool in raw_pools]
             skip += max_objects_in_batch
 
-    def _get_yield_token_prices(self) -> Dict[StakingService, Decimal]:
+    def _get_relevant_yield_token_prices(self) -> Dict[StakingService, Decimal]:
         prices = {}
         for staking_service, yield_pool in yield_pools.items():
-            if staking_service is StakingService.UNI_V2:
-                # We are no longer supporting UNI rewards as liquidity mining ended
-                continue
             subgraph = SubgraphReader(yield_pool.subgraph_name)
             highest_indexed_block = self.get_highest_indexed_block(subgraph)
             query = ''.join(yield_reserves_query_generator([highest_indexed_block], yield_pool.pool_id))
@@ -288,7 +285,7 @@ class Uniswap(Dex):
         return prices
 
     def _parse_pool(self, raw_pool: Dict, block: int, eth_price: Decimal,
-                    yield_token_prices: Dict[StakingService, Decimal]) -> Pool:
+                    relevant_yield_token_prices: Dict[StakingService, Decimal]) -> Pool:
         reserves_usd = Decimal(raw_pool['reserveUSD'])
         tokens: List[PoolToken] = []
         for i in range(2):
@@ -309,7 +306,7 @@ class Uniswap(Dex):
             tokens,
             block,
             eth_price,
-            yield_token_prices
+            relevant_yield_token_prices
         )
 
     def get_pool_day_data(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[PoolDayData]]:
