@@ -155,30 +155,30 @@ class Uniswap(Dex):
         }
         '''
         # 1. Get the positions and snapshots
-        staked = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
-        staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}-{stake["id"]}': stake for stake in staked}
+        stake_position = self.rewards_graph.query(query, params)['data']['stakePositionSnapshots']
+        staked_dict = {f'b{stake["blockNumber"]}_{stake["pool"]}-{stake["id"]}': stake for stake in stake_position}
 
-        if not staked:
+        if not stake_position:
             return []
 
         # 2. get the pool shares at the time of those snapshots
-        query = ''.join(_staked_query_generator(staked))
+        query = ''.join(_staked_query_generator(stake_position))
         data = self.dex_graph.query(query, {})['data']
         # build the snap list and return
         snaps = []
-        for key, staked in staked_dict.items():
+        for key, stake_position in staked_dict.items():
             pool_key = key.split("-")[0]
             pool = data[pool_key]
-            snaps.append(self._build_share_snap(staked, pool))
+            snaps.append(self._build_share_snap(stake_position, pool))
         return snaps
 
-    def _build_share_snap(self, stake: Dict, pool: Dict) -> ShareSnap:
+    def _build_share_snap(self, stake_position: Dict, pool: Dict) -> ShareSnap:
         reserves_usd = Decimal(pool['reserveUSD'])
         tokens = []
         for i in range(2):
             tok, res = pool[f'token{i}'], Decimal(pool[f'reserve{i}'])
 
-            if int(stake['blockTimestamp']) < self.PRICE_DISCOVERY_START_TIMESTAMP and \
+            if int(stake_position['blockTimestamp']) < self.PRICE_DISCOVERY_START_TIMESTAMP and \
                     tok['id'] in self.PRICE_OVERRIDES:
                 price_usd = self.PRICE_OVERRIDES[tok['id']]
             else:
@@ -199,20 +199,19 @@ class Uniswap(Dex):
                                     Decimal('0.5'),
                                     res,
                                     price_usd))
-        staking_service = StakingService[stake['stakingService']] if 'stakingService' in stake else None
         return ShareSnap(
-            stake['id'],
+            stake_position['id'],
             self.exchange,
-            stake['user'],
+            stake_position['user'],
             pool['id'],
-            stake['liquidityTokenBalance'],
+            stake_position['liquidityTokenBalance'],
             pool['totalSupply'],
             tokens,
-            stake['blockNumber'],
-            stake['blockTimestamp'],
-            stake['txHash'],
-            Decimal(stake['txGasUsed']) * Decimal(stake['txGasPrice']) * Decimal('1E-18'),
-            staking_service=staking_service
+            stake_position['blockNumber'],
+            stake_position['blockTimestamp'],
+            stake_position['txHash'],
+            Decimal(stake_position['txGasUsed']) * Decimal(stake_position['txGasPrice']) * Decimal('1E-18'),
+            staking_service=StakingService[stake_position['stakingService']]
         )
 
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:

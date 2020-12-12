@@ -90,8 +90,9 @@ class ShareSnap(object):
     # Optional because it's more efficient to populate the prices after having the instance
     eth_price: Optional[Decimal] = attr.ib(default=None)
     # Set for snaps which were at the time eligible for yield reward if the price was available in the graph
+    staking_service: Optional[StakingService] = attr.ib(default=None)  # Always None in Balancer
+    # It can be None even when staking_service is set in case the yield token price was not yet available
     yield_token_price: Optional[Decimal] = attr.ib(default=None)
-    staking_service: Optional[StakingService] = attr.ib(default=None)
 
     def to_serializable(self) -> Dict:
         serializable = {
