@@ -1,4 +1,6 @@
 # [START gae_python38_app]
+import logging
+
 from flask import Flask
 
 from src.balancer.balancer import Balancer
@@ -13,14 +15,15 @@ app = Flask(__name__)
 @app.route('/update/<string:exchange>/<string:entity_type>/')
 @app.route('/update/<string:exchange>/<string:entity_type>/<int:min_liquidity>/')
 def update(exchange, entity_type, min_liquidity=None):
+    logger = logging.getLogger(exchange)
     if exchange == 'UNI_V2':
         # TODO: switch to Uniswap() once the graph is synced
-        controller = Controller(UniMatchingTxs(), snap_index=6)
+        controller = Controller(UniMatchingTxs(), logger)
         # controller = Controller(Uniswap())
     elif exchange == 'BALANCER':
-        controller = Controller(Balancer())
+        controller = Controller(Balancer(), logger)
     elif exchange == 'SUSHI':
-        controller = Controller(Uniswap(dex_graph_name='benesjan/sushi-swap', exchange=Exchange.SUSHI))
+        controller = Controller(Uniswap(dex_graph_name='benesjan/sushi-swap', exchange=Exchange.SUSHI), logger)
     else:
         return '{"success": false, "exception": "Unknown exhchange type."}'
     try:
@@ -28,12 +31,16 @@ def update(exchange, entity_type, min_liquidity=None):
             controller.update_snaps(max_objects_in_batch=100)
         elif entity_type == 'staked_snaps':
             controller.update_staked_snaps(max_objects_in_batch=100)
+        elif entity_type == 'yields':
+            controller.update_yields(max_objects_in_batch=100)
         elif entity_type == 'pools':
             if min_liquidity is None:
                 return '{"success": false, "exception": "None min_liquidity URL parameter in update of pools."}'
-            controller.update_pools(max_objects_in_batch=100, min_liquidity=min_liquidity)
-        elif entity_type == 'yields':
-            controller.update_yields(max_objects_in_batch=100)
+            controller.update_pools(max_objects_in_batch=20, min_liquidity=min_liquidity)
+        elif entity_type == 'pool_day_data':
+            if min_liquidity is None:
+                return '{"success": false, "exception": "None min_liquidity URL parameter in update of daily pool data."}'
+            controller.update_pool_day_data(max_objects_in_batch=100, min_liquidity=min_liquidity)
         else:
             return '{"success": false, "exception": "Unknown entity type."}'
     except Exception as e:

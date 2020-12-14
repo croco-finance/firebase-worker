@@ -102,7 +102,7 @@ def pool_day_data_query_generator(pools: Dict) -> Iterable[str]:
     yield '{'
     for pool in pools:
         yield f'''
-            i{pool["id"]}: pairDayDatas(first: 1, orderBy: date, orderDirection: desc) {{
+            i{pool["id"]}: pairDayDatas(first: 1, orderBy: date, orderDirection: desc, where: {{pairAddress: "{pool['id']}"}}) {{
                 pairAddress
                 date
                 totalSupply

@@ -160,3 +160,6 @@ class PoolDayData(object):
             'usdVolume': str(self.usd_volume),
             'tokenVolume': [str(volume) for volume in self.token_volume],
         }
+
+    def month_ago(self) -> int:
+        return self.timestamp - 2592000  # 2592000 = 60*60*24*30 - 30 days in seconds
