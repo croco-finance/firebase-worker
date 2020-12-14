@@ -116,9 +116,12 @@ class Controller:
                 self._upload_pool_day_data(data)
 
     def _upload_pool_day_data(self, data: List[PoolDayData]):
-        self.logger.info(f"Uploading {len(data)} pool day data")
+        counter = 0
         for daily in data:
-            ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.timestamp}')
-            ref.set(daily.to_serializable())
+            if daily.usd_volume > 0:
+                ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.timestamp}')
+                ref.set(daily.to_serializable())
+                counter += 1
             month_ago_ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.month_ago()}')
             month_ago_ref.delete()
+        self.logger.info(f"Uploaded {counter} pool day data")
