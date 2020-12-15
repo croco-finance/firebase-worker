@@ -74,8 +74,8 @@ class Balancer(Dex):
         tokens: List[PoolToken] = []
         for tokenSnap in snap['tokenSnapshots']:
             token = tokenSnap['token']
-            # Replace token reserves with the one from snap
-            token['balance'] = snap['balance']
+            # Replace token reserves with the one from token snap
+            token['balance'] = tokenSnap['balance']
             tokens.append(self._parse_token(token, total_weight, reserves_usd))
         return ShareSnap(
             snap['id'],
