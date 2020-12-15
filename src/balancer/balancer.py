@@ -54,7 +54,6 @@ class Balancer(Dex):
                 '$SKIP': skip,
                 '$BLOCK': last_block_update,
             }
-            # The number of txs will not add up to query limit, due to tx filtering
             raw_snaps = self.dex_graph.query(query, params)['data']['snaps']
             if not raw_snaps:
                 break
