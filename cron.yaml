@@ -17,9 +17,6 @@ cron:
   - description: "Sushiswap update snaps"
     url: /update/SUSHI/snaps/
     schedule: every 15 mins
-  - description: "Balancer update staked snaps"
-    url: /update/BALANCER/staked_snaps/
-    schedule: every 15 mins
   - description: "Uniswap update staked snaps"
     url: /update/UNI_V2/staked_snaps/
     schedule: every 15 mins
