@@ -117,7 +117,6 @@ class Balancer(Dex):
         query = '''{
             pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc, where: {liquidity_gte: $MIN_LIQUIDITY}) {
                 id
-                symbol
                 totalWeight
                 totalShares
                 liquidity
