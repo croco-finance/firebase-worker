@@ -3,7 +3,7 @@ from typing import List, Dict, Iterable, Callable
 
 from src.balancer.queries import _eth_prices_query_generator, _bal_prices_query_generator
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool, StakingService, PoolDayData
+from src.shared.type_definitions import ShareSnap, CurrencyField, PoolToken, Exchange, Pool, StakingService
 
 
 class Balancer(Dex):
@@ -176,7 +176,4 @@ class Balancer(Dex):
         )
 
     def fetch_new_staked_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:
-        raise NotImplementedError
-
-    def get_pool_day_data(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[PoolDayData]]:
         raise NotImplementedError

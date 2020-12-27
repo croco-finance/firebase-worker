@@ -37,10 +37,6 @@ def update(exchange, entity_type, min_liquidity=None):
             if min_liquidity is None:
                 return '{"success": false, "exception": "None min_liquidity URL parameter in update of pools."}'
             controller.update_pools(max_objects_in_batch=20, min_liquidity=min_liquidity)
-        elif entity_type == 'pool_day_data':
-            if min_liquidity is None:
-                return '{"success": false, "exception": "None min_liquidity URL parameter in update of daily pool data."}'
-            controller.update_pool_day_data(max_objects_in_batch=100, min_liquidity=min_liquidity)
         else:
             return '{"success": false, "exception": "Unknown entity type."}'
     except Exception as e:

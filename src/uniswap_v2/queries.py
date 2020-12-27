@@ -1,4 +1,4 @@
-from typing import Iterable, List, Dict
+from typing import Iterable, List
 
 
 def _eth_prices_query_generator(block_heights: Iterable[int]) -> Iterable[str]:
@@ -93,22 +93,6 @@ def yield_reserves_query_generator(block_heights: Iterable[int], pair_id) -> Ite
             t{block_height}: pair(block: {{ number: {block_height} }}, id: "{pair_id}") {{
                 reserve0
                 reserveUSD
-            }}
-            '''
-    yield '}'
-
-
-def pool_day_data_query_generator(pools: Dict) -> Iterable[str]:
-    yield '{'
-    for pool in pools:
-        yield f'''
-            i{pool["id"]}: pairDayDatas(first: 1, orderBy: date, orderDirection: desc, where: {{pairAddress: "{pool['id']}"}}) {{
-                pairAddress
-                date
-                totalSupply
-                dailyVolumeToken0
-                dailyVolumeToken1
-                dailyVolumeUSD
             }}
             '''
     yield '}'

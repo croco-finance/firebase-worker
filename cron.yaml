@@ -2,8 +2,8 @@ cron:
   - description: "Balancer update all pools"
     url: /update/BALANCER/pools/0/
     schedule: every 24 hours
-  - description: "Uniswap update all pools"
-    url: /update/UNI_V2/pools/0/
+  - description: "Uniswap update all pools over 10k"
+    url: /update/UNI_V2/pools/10000/
     schedule: every 24 hours
   - description: "Sushiswap update all pools"
     url: /update/SUSHI/pools/0/
@@ -41,9 +41,3 @@ cron:
   - description: "Sushiswap update pools over 100k"
     url: /update/SUSHI/pools/100000/
     schedule: every 15 mins
-  - description: "Uniswap update daily pool data for pools over 20k"
-    url: /update/UNI_V2/pool_day_data/20000/
-    schedule: every 12 hours
-  - description: "Sushiswap update daily pool data for pools over 20k"
-    url: /update/SUSHI/pool_day_data/20000/
-    schedule: every 12 hours

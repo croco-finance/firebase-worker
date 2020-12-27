@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 import firebase_admin
@@ -5,7 +6,7 @@ from firebase_admin import credentials
 from firebase_admin import db
 
 from src.shared.Dex import Dex
-from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingService, PoolDayData
+from src.shared.type_definitions import ShareSnap, YieldReward, Pool, StakingService
 
 
 class Controller:
@@ -99,29 +100,18 @@ class Controller:
 
     def update_pools(self, max_objects_in_batch, min_liquidity=100000):
         self.logger.info('POOL UPDATE INITIATED')
+        delete_threshold = 10000  # Min liquidity amount which will be considered as full update
+        day_id = int(datetime.now().timestamp() / 86400)
+        day_id_to_delete = None if min_liquidity >= delete_threshold else day_id - 30
         for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity):
             if pools:
-                self._upload_pools(pools)
+                self._upload_pools(pools, day_id, day_id_to_delete)
+        if min_liquidity <= delete_threshold:
+            self.last_update_ref.child('dayId').set(day_id)
 
-    def _upload_pools(self, pools: List[Pool]):
+    def _upload_pools(self, pools: List[Pool], day_id: int, day_id_to_delete: Optional[int]):
         self.logger.info(f"Uploading {len(pools)} pools")
         for pool in pools:
-            pool_ref = self.root_ref.child(f'pools/{pool.id}')
-            pool_ref.set(pool.to_serializable())
-
-    def update_pool_day_data(self, max_objects_in_batch, min_liquidity=10000):
-        self.logger.info('POOL DAY DATA UPDATE INITIATED')
-        for data in self.instance.get_pool_day_data(max_objects_in_batch, min_liquidity):
-            if data:
-                self._upload_pool_day_data(data)
-
-    def _upload_pool_day_data(self, data: List[PoolDayData]):
-        counter = 0
-        for daily in data:
-            if daily.usd_volume > 0:
-                ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.timestamp}')
-                ref.set(daily.to_serializable())
-                counter += 1
-            month_ago_ref = self.root_ref.child(f'daily/{daily.pool_id}/{daily.month_ago()}')
-            month_ago_ref.delete()
-        self.logger.info(f"Uploaded {counter} pool day data")
+            self.root_ref.child(f'poolSnaps/{pool.id}/{day_id}').set(pool.to_serializable())
+            if day_id_to_delete:
+                self.root_ref.child(f'poolSnaps/{pool.id}/{day_id_to_delete}').delete()
