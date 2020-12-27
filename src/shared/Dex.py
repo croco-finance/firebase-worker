@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Iterable, Callable
 
@@ -132,3 +133,14 @@ class Dex(ABC):
     @abstractmethod
     def get_pool_day_data(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[PoolDayData]]:
         raise NotImplementedError
+
+    def get_block_seconds_ago(self, seconds=86400):
+        query = '''{
+            blocks(first: 1, orderBy: timestamp, orderDirection: asc, where: {timestamp_gt: $TIMESTAMP}) {
+                number
+            }
+        }'''
+        params = {
+            '$TIMESTAMP': int(datetime.now().timestamp() - seconds)
+        }
+        return int(self.block_graph.query(query, params)['data']['blocks'][0]['number'])
