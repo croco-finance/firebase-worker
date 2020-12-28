@@ -99,10 +99,11 @@ class Controller:
         self.logger.info(f'Updated highest yields firebase block to {highest_block}')
 
     def update_pools(self, max_objects_in_batch, min_liquidity=100000):
-        self.logger.info('POOL UPDATE INITIATED')
         delete_threshold = 10000  # Min liquidity amount which will be considered as full update
         day_id = int(datetime.now().timestamp() / 86400)
         day_id_to_delete = None if min_liquidity >= delete_threshold else day_id - 30
+        self.logger.info(f'POOL UPDATE INITIATED, day_id: {day_id}' +
+                         f', day_id_to_delete: {day_id_to_delete}' if day_id_to_delete else '')
         for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity):
             if pools:
                 self._upload_pools(pools, day_id, day_id_to_delete)
