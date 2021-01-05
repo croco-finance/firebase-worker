@@ -20,13 +20,11 @@ class Balancer(Dex):
         query = '''{
             snaps: poolShareSnapshots(first: $MAX_OBJECTS, skip: $SKIP, orderBy: block, orderDirection: asc, where: {block_gte: $BLOCK}) {
                 id
-                poolShare {
-                    poolId {
-                        id
-                        totalWeight
-                    }
+                pool {
+                    id
+                    totalWeight
                 }
-                userAddress {
+                user {
                     id
                 }
                 balance
@@ -68,7 +66,7 @@ class Balancer(Dex):
             skip += max_objects_in_batch
 
     def _parse_snap(self, snap: Dict) -> ShareSnap:
-        pool = snap['poolShare']['poolId']
+        pool = snap['pool']
         total_weight = Decimal(pool['totalWeight'])
         reserves_usd = Decimal(snap['liquidity'])
         tokens: List[PoolToken] = []
@@ -80,7 +78,7 @@ class Balancer(Dex):
         return ShareSnap(
             snap['id'],
             self.exchange,
-            snap['userAddress']['id'],
+            snap['user']['id'],
             pool['id'],
             snap['balance'],
             snap['totalShares'],
