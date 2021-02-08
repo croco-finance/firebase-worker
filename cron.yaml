@@ -1,13 +1,13 @@
 cron:
   - description: "Balancer update all pools"
     url: /update/BALANCER/pools/0/
-    schedule: every 24 hours
+    schedule: every 30 mins
   - description: "Uniswap update all pools over 10k"
     url: /update/UNI_V2/pools/10000/
-    schedule: every 24 hours
+    schedule: every 30 mins
   - description: "Sushiswap update all pools"
     url: /update/SUSHI/pools/0/
-    schedule: every 24 hours
+    schedule: every 30 mins
   - description: "Balancer update snaps"
     url: /update/BALANCER/snaps/
     schedule: every 15 mins
