@@ -111,7 +111,7 @@ class Balancer(Dex):
     def _get_eth_prices_query_generator(self) -> Callable[[Iterable[int]], Iterable[str]]:
         return _eth_prices_query_generator
 
-    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int, skip: int = 0) -> Iterable[List[Pool]]:
         query = '''{
             pools(first: $MAX_OBJECTS, skip: $SKIP, orderBy: liquidity, orderDirection: desc, where: {liquidity_gte: $MIN_LIQUIDITY}) {
                 id
@@ -127,7 +127,7 @@ class Balancer(Dex):
                 }
             }
         }'''
-        skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
+        highest_indexed_block = self.get_highest_indexed_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
         yield_token_price = self._get_yield_token_prices([highest_indexed_block])[highest_indexed_block]
         while True:

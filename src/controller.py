@@ -101,14 +101,27 @@ class Controller:
     def update_pools(self, max_objects_in_batch, min_liquidity=100000):
         delete_threshold = 10000  # Min liquidity amount which will be considered as full update
         day_id = int(datetime.now().timestamp() / 86400)
-        day_id_to_delete = None if min_liquidity > delete_threshold else day_id - 30
+        full_update = min_liquidity <= delete_threshold
+        day_id_to_delete = None
+        skip = 0
+
+        if full_update:
+            day_id_to_delete = day_id - 30
+            skip = self.last_update['daySkip']
+
         self.logger.info(f'POOL UPDATE INITIATED, day_id: {day_id}' +
                          (f', day_id_to_delete: {day_id_to_delete}' if day_id_to_delete else ''))
-        for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity):
+        for pools in self.instance.fetch_pools(max_objects_in_batch, min_liquidity, skip):
             if pools:
                 self._upload_pools(pools, day_id, day_id_to_delete)
-        if min_liquidity <= delete_threshold:
+                skip += max_objects_in_batch
+                if full_update:
+                    self.last_update_ref.child('daySkip').set(skip)
+
+        if full_update:
+            # Full update finished without error
             self.last_update_ref.child('dayId').set(day_id)
+            self.last_update_ref.child('daySkip').set(0)
 
     def _upload_pools(self, pools: List[Pool], day_id: int, day_id_to_delete: Optional[int]):
         self.logger.info(f"Uploading {len(pools)} pools")

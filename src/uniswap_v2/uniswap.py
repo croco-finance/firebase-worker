@@ -235,7 +235,7 @@ class Uniswap(Dex):
             for snap in snap_list:
                 snap.yield_token_price = prices[snap.block]
 
-    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int) -> Iterable[List[Pool]]:
+    def fetch_pools(self, max_objects_in_batch: int, min_liquidity: int, skip: int = 0) -> Iterable[List[Pool]]:
         query = '''{
             pairs(first: $MAX_OBJECTS, skip: $SKIP, orderBy: reserveUSD, orderDirection: desc, where: {reserveUSD_gte: $MIN_LIQUIDITY}) {
                 id
@@ -255,7 +255,7 @@ class Uniswap(Dex):
                 }
             }
         }'''
-        skip, highest_indexed_block = 0, self.get_highest_indexed_block(self.dex_graph)
+        highest_indexed_block = self.get_highest_indexed_block(self.dex_graph)
         eth_price = self._get_eth_usd_prices([highest_indexed_block])[highest_indexed_block]
         yield_token_prices = self._get_relevant_yield_token_prices()
         while True:
