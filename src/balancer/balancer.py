@@ -118,6 +118,7 @@ class Balancer(Dex):
                 totalWeight
                 totalShares
                 liquidity
+                swapFee
                 tokens {
                     symbol
                     name
@@ -156,7 +157,8 @@ class Balancer(Dex):
             tokens,
             block,
             eth_price,
-            {StakingService.BALANCER: yield_token_price}
+            {StakingService.BALANCER: yield_token_price},
+            Decimal(raw_pool['swapFee'])
         )
 
     def _parse_token(self, token: Dict, total_weight: Decimal, reserves_usd: Decimal) -> PoolToken:

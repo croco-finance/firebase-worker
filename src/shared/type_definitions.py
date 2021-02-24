@@ -59,6 +59,7 @@ class Pool(object):
     block: int
     eth_price: Decimal
     relevant_yield_token_prices: Optional[Dict[StakingService, Decimal]] = attr.ib(default=None)
+    swap_fee: Decimal = attr.ib(default='0.003')
 
     def to_serializable(self) -> Dict:
         serializable = {
@@ -67,6 +68,7 @@ class Pool(object):
             'tokens': [token.to_serializable() for token in self.tokens],
             'block': self.block,
             'ethPrice': str(self.eth_price),
+            'swapFee': str(self.swap_fee)
         }
         if self.relevant_yield_token_prices:
             serializable['relevantYieldTokenPrices'] = {stakingService.name: str(price) for stakingService, price
