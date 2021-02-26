@@ -8,6 +8,9 @@ cron:
   - description: "Sushiswap update all pools"
     url: /update/SUSHI/pools/0/
     schedule: every 30 mins
+  - description: "Materia update all pools"
+    url: /update/MATERIA/pools/0/
+    schedule: every 2 hours
   - description: "Balancer update snaps"
     url: /update/BALANCER/snaps/
     schedule: every 15 mins
@@ -17,6 +20,9 @@ cron:
   - description: "Sushiswap update snaps"
     url: /update/SUSHI/snaps/
     schedule: every 15 mins
+  - description: "Materia update snaps"
+    url: /update/MATERIA/snaps/
+    schedule: every 2 hours
   - description: "Uniswap update staked snaps"
     url: /update/UNI_V2/staked_snaps/
     schedule: every 15 mins

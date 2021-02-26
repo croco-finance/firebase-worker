@@ -41,6 +41,7 @@ class Exchange(Enum):
     UNI_V2 = 0
     BALANCER = 1
     SUSHI = 2
+    MATERIA = 3
 
 
 class StakingService(Enum):

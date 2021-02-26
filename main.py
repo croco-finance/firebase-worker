@@ -24,6 +24,8 @@ def update(exchange, entity_type, min_liquidity=None):
         controller = Controller(Balancer(), logger)
     elif exchange == 'SUSHI':
         controller = Controller(Uniswap(dex_graph_name='benesjan/sushi-swap', exchange=Exchange.SUSHI), logger)
+    elif exchange == 'MATERIA':
+        controller = Controller(Uniswap(dex_graph_name='materia-dex/materia', exchange=Exchange.MATERIA), logger)
     else:
         return '{"success": false, "exception": "Unknown exhchange type."}'
     try:
