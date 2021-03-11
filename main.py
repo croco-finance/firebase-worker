@@ -7,7 +7,6 @@ from src.balancer.balancer import Balancer
 from src.controller import Controller
 from src.shared.type_definitions import Exchange
 from src.uniswap_v2.uniswap import Uniswap
-from src.workarounds.uniswap_matching_txs import UniMatchingTxs
 
 app = Flask(__name__)
 
@@ -17,9 +16,7 @@ app = Flask(__name__)
 def update(exchange, entity_type, min_liquidity=None):
     logger = logging.getLogger(exchange)
     if exchange == 'UNI_V2':
-        # TODO: switch to Uniswap() once the graph is synced
-        controller = Controller(UniMatchingTxs(), logger)
-        # controller = Controller(Uniswap())
+        controller = Controller(Uniswap(dex_graph_name='benesjan/uniswap-v2', exchange=Exchange.UNI_V2), logger)
     elif exchange == 'BALANCER':
         controller = Controller(Balancer(), logger)
     elif exchange == 'SUSHI':
