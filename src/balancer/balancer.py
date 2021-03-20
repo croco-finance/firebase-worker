@@ -119,6 +119,7 @@ class Balancer(Dex):
                 totalShares
                 liquidity
                 swapFee
+                totalSwapVolume
                 tokens {
                     symbol
                     name
@@ -157,6 +158,7 @@ class Balancer(Dex):
             tokens,
             block,
             eth_price,
+            raw_pool['totalSwapVolume'],
             {StakingService.BALANCER: yield_token_price},
             Decimal(raw_pool['swapFee'])
         )

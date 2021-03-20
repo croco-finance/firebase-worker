@@ -242,6 +242,7 @@ class Uniswap(Dex):
                 reserveUSD
                 reserve0
                 reserve1
+                volumeUSD
                 totalSupply
                 token0 {
                     id
@@ -304,5 +305,6 @@ class Uniswap(Dex):
             tokens,
             block,
             eth_price,
+            Decimal(raw_pool['volumeUSD']),
             relevant_yield_token_prices
         )
