@@ -42,6 +42,7 @@ class Exchange(Enum):
     BALANCER = 1
     SUSHI = 2
     MATERIA = 3
+    PANCAKE = 4
 
 
 class StakingService(Enum):
@@ -49,6 +50,7 @@ class StakingService(Enum):
     BALANCER = 1
     SUSHI = 2
     INDEX = 3
+    PANCAKE = 4
 
 
 @attr.s(auto_attribs=True, slots=True)

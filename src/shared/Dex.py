@@ -13,12 +13,14 @@ class Dex(ABC):
     Base class defining the interface for DEXes.
     """
 
-    def __init__(self, dex_graph_name: str, exchange: Exchange, eth_price_first_block=0):
+    def __init__(self, dex_graph_name: str, exchange: Exchange, eth_price_first_block=0,
+                 rewards_graph_name='benesjan/dex-rewards-subgraph', platform='ethereum'):
         self.dex_graph = SubgraphReader(dex_graph_name)
         self.exchange = exchange
         self.eth_price_first_block = eth_price_first_block
         self.block_graph = SubgraphReader('blocklytics/ethereum-blocks')
-        self.rewards_graph = SubgraphReader('benesjan/dex-rewards-subgraph')
+        self.rewards_graph = SubgraphReader(rewards_graph_name)
+        self.platform = platform
 
     @abstractmethod
     def fetch_new_snaps(self, last_block_update: int, max_objects_in_batch: int) -> Iterable[List[ShareSnap]]:

@@ -171,7 +171,7 @@ class Balancer(Dex):
             CurrencyField(symbol=token['symbol'],
                           name=token['name'],
                           contract_address=token['address'],
-                          platform='ethereum'),
+                          platform=self.platform),
             token_weight,
             token_reserve,
             price_usd

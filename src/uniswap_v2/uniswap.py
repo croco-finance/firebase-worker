@@ -92,7 +92,7 @@ class Uniswap(Dex):
             tokens.append(PoolToken(CurrencyField(symbol=tok['symbol'],
                                                   name=tok['name'],
                                                   contract_address=tok['id'],
-                                                  platform='ethereum'),
+                                                  platform=self.platform),
                                     Decimal('0.5'),
                                     res,
                                     price
@@ -193,7 +193,7 @@ class Uniswap(Dex):
             token_type = CurrencyField(symbol=tok['symbol'],
                                        name=tok['name'],
                                        contract_address=tok['id'],
-                                       platform='ethereum')
+                                       platform=self.platform)
             tokens.append(PoolToken(token_type,
                                     Decimal('0.5'),
                                     res,
@@ -293,7 +293,7 @@ class Uniswap(Dex):
             tokens.append(PoolToken(CurrencyField(symbol=tok['symbol'],
                                                   name=tok['name'],
                                                   contract_address=tok['id'],
-                                                  platform='ethereum'),
+                                                  platform=self.platform),
                                     Decimal('0.5'),
                                     res,
                                     price_usd
